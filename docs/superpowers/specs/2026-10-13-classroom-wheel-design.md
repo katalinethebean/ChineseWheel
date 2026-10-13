@@ -51,12 +51,11 @@
 | 表 | 字段（主要） | 访问权限 |
 |---|---|---|
 | `classes` | `id`, `teacher_id`, `name`, `join_code`（短随机码，唯一）, `created_at` | 老师本人读写 |
-| `students` | `id`, `class_id`, `name`, `device_token_hash`（可空）, `created_at` | 老师本人读写 |
+| `students` | `id`, `class_id`, `name`, `seq`, `device_token_hash`（可空）, `total_plus`, `total_minus` | 老师本人读写（统计和设备绑定只能通过函数修改） |
 | `lessons` | `id`, `class_id`, `started_at`, `settled_at`（可空）, `exclude_picked`（bool） | 老师本人读写 |
 | `attendance` | `lesson_id`, `student_id` | 老师本人读写；学生加入时由函数写入 |
 | `questions` | `id`, `lesson_id`, `status`（`open` / `spun`）, `winner_student_id`, `created_at` | 公开可读（用于 Realtime 推送），只能通过函数写 |
 | `adjustments` | `question_id`, `student_id`, `delta` | **无任何直接读取权限** |
-| `student_stats` | `student_id`, `total_plus`, `total_minus` | 老师本人可读，只能通过函数写 |
 
 设备令牌只存哈希（`device_token_hash`），明文只在学生手机上。
 
@@ -77,7 +76,7 @@
 - `start_question(lesson_id)` → 新题目（`open`）。同一课次同时只能有一道 `open` 的题。
 - `adjusted_count(question_id)` → 本题 `delta != 0` 的人数。
 - `spin(question_id)` → 按第 3 节规则抽人，把题目改为 `spun`，写入 `winner_student_id`，返回被抽中者 id 和名字。题目不是 `open` 则报错。
-- `settle_lesson(lesson_id)` → 把本课次所有题目的 `delta` 累加进 `student_stats`，并写入 `settled_at`。已结算过则不做任何事（幂等）。
+- `settle_lesson(lesson_id)` → 把本课次已转题目的 `delta` 累加进学生的 `total_plus` / `total_minus`，取消未转的题，删除本课次的 `adjustments`，写入 `settled_at`。已结算过则不做任何事（幂等）。
 - `release_student(student_id)` → 清空设备绑定。
 - `reset_stats(class_id)` → 清零该班统计。
 
