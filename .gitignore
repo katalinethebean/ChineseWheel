@@ -4,3 +4,4 @@ dist
 .env.*.local
 supabase/.temp
 .DS_Store
+.netlify
