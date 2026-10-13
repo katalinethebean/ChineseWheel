@@ -72,6 +72,11 @@ export function Roster() {
     await run(() => rpc('release_student', { p_student_id: s.id }), `已解绑 ${s.name}`)
   }
 
+  async function releaseAll() {
+    if (!window.confirm('让所有学生重新选择名字吗？已经加入的学生会回到选名字的页面。')) return
+    await run(() => rpc('release_all'), '已全部解绑，学生需要重新选择名字')
+  }
+
   async function resetStats() {
     if (!window.confirm('确定把所有学生的统计清零吗？此操作无法撤销。')) return
     await run(() => rpc('reset_stats'), '统计已清零')
@@ -139,9 +144,15 @@ export function Roster() {
 
       <section className="card danger-zone">
         <h2>其他操作</h2>
-        <button className="btn danger" onClick={resetStats}>
-          统计清零
-        </button>
+        <p className="muted small">每次下课结算后，所有学生会自动解绑，下节课重新选名字。</p>
+        <div className="row">
+          <button className="btn" onClick={releaseAll}>
+            全部解绑
+          </button>
+          <button className="btn danger" onClick={resetStats}>
+            统计清零
+          </button>
+        </div>
       </section>
     </>
   )

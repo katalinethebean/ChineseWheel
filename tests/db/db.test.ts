@@ -297,6 +297,22 @@ describe('下课结算', () => {
     expect(await startLesson()).toBeTruthy()
   })
 
+  it('下课结算后所有人要重新选名字；全部解绑', async () => {
+    const ids = await addStudents(['张三', '李四'])
+    const t1 = await claim(ids['张三'])
+    const lesson = await startLesson()
+    await state(t1)
+    await settle(lesson)
+    expect((await state(t1)).valid).toBe(false)
+    expect(await q<any>('anon', `select name from students where claimed`)).toEqual([])
+
+    const t2 = await claim(ids['李四'])
+    await claim(ids['张三'])
+    await q('anon', `select release_all()`)
+    expect((await state(t2)).valid).toBe(false)
+    expect(await claim(ids['李四'])).toBeTruthy()
+  })
+
   it('清零统计', async () => {
     const ids = await addStudents(['张三'])
     const t1 = await claim(ids['张三'])

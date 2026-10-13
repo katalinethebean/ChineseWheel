@@ -103,7 +103,7 @@ function PickName({ onClaimed }: { onClaimed: (token: string) => void }) {
             </button>
           ))}
         </div>
-        <p className="muted small">名字显示「已加入」但不是你本人？请告诉老师。</p>
+        <p className="muted small">名字显示「已加入」但不是你本人？请老师在「名单」里解绑。</p>
       </div>
 
       {chosen && (
