@@ -103,7 +103,7 @@ describe('学生认领名字', () => {
 })
 
 describe('上课流程', () => {
-  it('权重从 10 开始，加减一，最低到 0；转完后不能再改', async () => {
+  it('权重从 10 开始，加减一，最低到 1；转完后不能再改', async () => {
     const ids = await addStudents(['张三', '李四'])
     const t1 = await claim(ids['张三'])
     const lesson = await startLesson()
@@ -115,8 +115,8 @@ describe('上课流程', () => {
 
     expect((await state(t1)).question.weight).toBe(10)
     expect(await adjustTimes(t1, qid, 1, 3)).toBe(13)
-    expect(await adjustTimes(t1, qid, -1, 20)).toBe(0)
-    expect(await adjust(t1, qid, 1)).toBe(1)
+    expect(await adjustTimes(t1, qid, -1, 20)).toBe(1)
+    expect(await adjust(t1, qid, 1)).toBe(2)
     await expect(adjust(t1, qid, 2)).rejects.toThrow(/只能加一或减一/)
 
     const ts = await one<{ s: any }>('anon', `select teacher_lesson_state($1) as s`, [lesson])
@@ -129,7 +129,7 @@ describe('上课流程', () => {
     await expect(spin(qid)).rejects.toThrow(/已经转过/)
   })
 
-  it('只抽在场的人；权重为 0 的人不会被抽中', async () => {
+  it('只抽在场的人', async () => {
     const ids = await addStudents(['张三', '李四', '王五'])
     const t1 = await claim(ids['张三'])
     const t2 = await claim(ids['李四'])
@@ -140,8 +140,7 @@ describe('上课流程', () => {
 
     for (let i = 0; i < 15; i++) {
       const qid = await startQuestion(lesson)
-      await adjustTimes(t1, qid, -1, 10)
-      expect((await spin(qid)).winner_name).toBe('李四')
+      expect(['张三', '李四']).toContain((await spin(qid)).winner_name)
     }
   })
 
@@ -160,17 +159,69 @@ describe('上课流程', () => {
     }
   })
 
-  it('没有在场学生时不能转；全部为 0 时平均抽', async () => {
-    const ids = await addStudents(['张三', '李四'])
+  it('滑块直接设置权重（1–30），加减按钮也不会超过 30', async () => {
+    const ids = await addStudents(['张三'])
+    const t1 = await claim(ids['张三'])
+    const lesson = await startLesson()
+    const qid = await startQuestion(lesson)
+    const setW = async (w: number) =>
+      (await one<{ w: number }>('anon', `select set_weight($1, $2, $3) as w`, [t1, qid, w])).w
+    expect(await setW(25)).toBe(25)
+    expect(await setW(1)).toBe(1)
+    expect((await state(t1)).question.weight).toBe(1)
+    await expect(setW(0)).rejects.toThrow(/1 到 30/)
+    await expect(setW(31)).rejects.toThrow(/1 到 30/)
+    await setW(30)
+    expect(await adjust(t1, qid, 1)).toBe(30)
+    await spin(qid)
+    await expect(setW(10)).rejects.toThrow(/已经结束/)
+  })
+
+  it('没有在场学生时不能转', async () => {
+    await addStudents(['张三'])
+    const lesson = await startLesson()
+    await expect(spin(await startQuestion(lesson))).rejects.toThrow(/没有可以抽的学生/)
+  })
+
+  it('学生能看到自己的占比；转完后按快照显示', async () => {
+    const ids = await addStudents(['张三', '李四', '王五'])
     const t1 = await claim(ids['张三'])
     const t2 = await claim(ids['李四'])
     const lesson = await startLesson()
-    const q0 = await startQuestion(lesson)
-    await expect(spin(q0)).rejects.toThrow(/没有可以抽的学生/)
+    await state(t1)
+    await state(t2)
+    const qid = await startQuestion(lesson)
+    await adjustTimes(t1, qid, 1, 5)    // 15
+    await adjustTimes(t2, qid, -1, 3)   // 7
 
-    await adjustTimes(t1, q0, -1, 10)
-    await adjustTimes(t2, q0, -1, 10)
-    expect(['张三', '李四']).toContain((await spin(q0)).winner_name)
+    let s = (await state(t1)).question
+    expect(s).toMatchObject({ weight: 15, total_weight: 22, candidate_count: 2, is_candidate: true })
+    // 学生端不会拿到别人的名字或权重
+    expect(JSON.stringify(s)).not.toMatch(/李四|"7"/)
+
+    await spin(qid)
+    // 转完后王五才加入，不影响快照
+    await q('anon', `insert into attendance (lesson_id, student_id) values ($1, $2)`, [lesson, ids['王五']])
+    s = (await state(t1)).question
+    expect(s).toMatchObject({ status: 'spun', weight: 15, total_weight: 22, candidate_count: 2, is_candidate: true })
+    expect(s.seconds_since_spin).toBeGreaterThanOrEqual(0)
+  })
+
+  it('不在转盘上的学生（被标记不在场）is_candidate 为 false', async () => {
+    const ids = await addStudents(['张三', '李四'])
+    const t1 = await claim(ids['张三'])
+    const lesson = await startLesson()
+    await state(t1)
+    await q('anon', `insert into attendance (lesson_id, student_id) values ($1, $2)`, [lesson, ids['李四']])
+    await q('anon', `update attendance set present = false where student_id = $1`, [ids['张三']])
+    const qid = await startQuestion(lesson)
+    expect((await state(t1)).question).toMatchObject({ is_candidate: false, total_weight: 10, candidate_count: 1 })
+    await spin(qid)
+    expect((await state(t1)).question).toMatchObject({ is_candidate: false, candidate_count: 1 })
+  })
+
+  it('快照表不能直接读取', async () => {
+    await expect(q('anon', 'select * from spin_snapshots')).rejects.toThrow(/permission denied/)
   })
 
   it('开启"抽过不再抽"后，同一节课不会重复抽到同一个人', async () => {
@@ -221,7 +272,7 @@ describe('下课结算', () => {
 
     const q2 = await startQuestion(lesson)
     await adjustTimes(t1, q2, 1, 6)      // 张三 +6
-    await adjustTimes(t2, q2, -1, 12)    // 李四 -10（到底）
+    await adjustTimes(t2, q2, -1, 12)    // 李四 -9（到底，权重 1）
     await spin(q2)
 
     const q3 = await startQuestion(lesson)
@@ -236,7 +287,7 @@ describe('下课结算', () => {
     const rows = await q<any>('anon', `select name, total_plus, total_minus from students order by seq`)
     expect(rows).toEqual([
       { name: '张三', total_plus: 6, total_minus: -2 },
-      { name: '李四', total_plus: 4, total_minus: -10 },
+      { name: '李四', total_plus: 4, total_minus: -9 },
     ])
 
     const left = await one<{ n: number }>('postgres', `select count(*)::int as n from adjustments`)

@@ -1,7 +1,7 @@
 import { QRCodeSVG } from 'qrcode.react'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { SPIN_MS, Wheel } from '../components/Wheel'
+import { SPIN_MS, Wheel, equalSlices } from '../components/Wheel'
 import { usePolling } from '../lib/hooks'
 import { errorText, rpc, supabase } from '../lib/supabase'
 import type { LessonRow, TeacherLessonState } from '../lib/types'
@@ -213,7 +213,7 @@ export function Lesson() {
       <div className="lesson-grid">
         <section className="stage">
           <Wheel
-            names={wheelPeople.map((p) => p.name)}
+            slices={equalSlices(wheelPeople.map((p) => p.name))}
             rotation={rotation}
             spinning={phase === 'spinning'}
             winnerIndex={winnerIndex}

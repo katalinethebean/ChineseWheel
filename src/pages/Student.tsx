@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { SPIN_MS } from '../components/Wheel'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { SPIN_MS, Wheel, type Slice } from '../components/Wheel'
 import { usePolling } from '../lib/hooks'
 import { errorText, rpc, supabase } from '../lib/supabase'
 import type { StudentState } from '../lib/types'
+import { layoutArcs, targetRotationInArc } from '../lib/wheel'
 
 type RosterEntry = { id: string; name: string; claimed: boolean }
 
@@ -126,16 +127,29 @@ function PickName({ onClaimed }: { onClaimed: (token: string) => void }) {
   )
 }
 
+const MIN_WEIGHT = 1
+const MAX_WEIGHT = 30
+const NORMAL_WEIGHT = 10
+const ME_COLOR = '#d9483b'
+const OTHER_COLORS = ['#ddd5c4', '#cbc2ae']
+
 function StudentView({ token, onInvalid }: { token: string; onInvalid: () => void }) {
   const [state, setState] = useState<StudentState | null>(null)
   const [weight, setWeight] = useState<number | null>(null)
   const [error, setError] = useState('')
+  const [rotation, setRotation] = useState(0)
+  const [spinning, setSpinning] = useState(false)
+  const [spinMs, setSpinMs] = useState(SPIN_MS)
+  const [landedIndex, setLandedIndex] = useState<number | null>(null)
   const [revealAt, setRevealAt] = useState(0)
   const [, forceTick] = useState(0)
   const latestAdjust = useRef(0)
+  const animatedFor = useRef<string | null>(null)
+  const sendTimer = useRef<number | undefined>(undefined)
   const onInvalidRef = useRef(onInvalid)
   onInvalidRef.current = onInvalid
-  const questionId = state?.valid ? state.question?.id : undefined
+
+  const q = state?.valid ? state.question : null
 
   const load = useCallback(async () => {
     try {
@@ -143,22 +157,18 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
       if (!s.valid) return onInvalidRef.current()
       setState(s)
       setError('')
-      const q = s.question
-      if (q?.status === 'spun' && q.seconds_since_spin != null) {
-        // 和老师屏幕的转盘动画同步：转完之前不揭晓结果
-        setRevealAt(Date.now() + Math.max(0, SPIN_MS - q.seconds_since_spin * 1000))
-      }
     } catch (e) {
       setError(errorText(e))
     }
   }, [token])
 
-  usePolling(load, 4000)
+  // 出题期间刷新快一点，这样别人调整后自己的扇区大小能及时更新
+  usePolling(load, q?.status === 'open' ? 2000 : 4000)
 
   // 题目变化时，用服务器的权重重置本地显示
   useEffect(() => {
-    setWeight(state?.valid && state.question ? state.question.weight : null)
-  }, [questionId, state?.valid && state.question?.status])
+    setWeight(q ? q.weight : null)
+  }, [q?.id, q?.status])
 
   // 实时推送：老师开题 / 转盘时立刻刷新
   useEffect(() => {
@@ -171,6 +181,43 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
     }
   }, [load])
 
+  // 转盘的扇区：自己的按真实占比，其他人灰色、没有名字、平均分
+  const myWeight = weight ?? q?.weight ?? 10
+  const othersCount = q ? q.candidate_count - (q.is_candidate ? 1 : 0) : 0
+  const othersTotal = q ? q.total_weight - (q.is_candidate ? q.weight : 0) : 0
+  const slices: Slice[] = []
+  if (q && state?.valid) {
+    if (q.is_candidate) {
+      slices.push({ label: state.student_name, weight: myWeight, color: ME_COLOR, textColor: '#fff' })
+    }
+    for (let i = 0; i < othersCount; i++) {
+      slices.push({ weight: othersTotal / othersCount, color: OTHER_COLORS[i % 2] })
+    }
+  }
+  const chance = q?.is_candidate ? myWeight / (othersTotal + myWeight) : 0
+
+  // 老师转盘后，学生端同步转动，停在和结果一致的位置
+  useEffect(() => {
+    if (!q || q.status !== 'spun' || animatedFor.current === q.id || slices.length === 0) return
+    animatedFor.current = q.id
+    const arcs = layoutArcs(slices.map((sl) => sl.weight))
+    const firstOther = q.is_candidate ? 1 : 0
+    const index =
+      q.is_me && q.is_candidate ? 0 : firstOther + Math.floor(Math.random() * (arcs.length - firstOther))
+    const remaining = SPIN_MS - (q.seconds_since_spin ?? 999) * 1000
+    setLandedIndex(index)
+    if (remaining > 800) {
+      setSpinMs(remaining)
+      setSpinning(true)
+      setRotation((cur) => targetRotationInArc(cur, arcs[index], { spins: Math.max(2, Math.round((6 * remaining) / SPIN_MS)) }))
+      setRevealAt(Date.now() + remaining)
+      window.setTimeout(() => setSpinning(false), remaining + 50)
+    } else {
+      setRotation((cur) => targetRotationInArc(cur, arcs[index], { spins: 0 }))
+      setRevealAt(0)
+    }
+  }, [q?.id, q?.status, slices.length])
+
   // 揭晓倒计时
   useEffect(() => {
     const wait = revealAt - Date.now()
@@ -179,23 +226,37 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
     return () => window.clearTimeout(id)
   }, [revealAt])
 
-  async function step(delta: 1 | -1) {
-    if (!questionId) return
-    setWeight((w) => (w == null ? w : Math.max(0, w + delta)))
-    const ticket = ++latestAdjust.current
-    try {
-      const w = await rpc<number>('adjust', { p_token: token, p_question_id: questionId, p_step: delta })
-      if (ticket === latestAdjust.current) setWeight(w)
-    } catch (e) {
-      setError(errorText(e))
-      load()
-    }
+  // 拖动滑块时立即更新显示，停下 200ms 后再发给服务器
+  function changeWeight(w: number) {
+    if (!q) return
+    const questionId = q.id
+    setWeight(w)
+    window.clearTimeout(sendTimer.current)
+    sendTimer.current = window.setTimeout(async () => {
+      const ticket = ++latestAdjust.current
+      try {
+        const saved = await rpc<number>('set_weight', { p_token: token, p_question_id: questionId, p_weight: w })
+        if (ticket === latestAdjust.current) setWeight(saved)
+      } catch (e) {
+        setError(errorText(e))
+        load()
+      }
+    }, 200)
   }
 
   if (!state?.valid) return <div className="student"><p className="muted">{error || '加载中…'}</p></div>
 
-  const q = state.question
   const revealed = Date.now() >= revealAt
+  const wheel = (
+    <Wheel
+      slices={slices}
+      rotation={rotation}
+      spinning={spinning}
+      spinMs={spinMs}
+      winnerIndex={q?.status === 'spun' && revealed ? landedIndex : null}
+      emptyText="转盘上暂时没有人"
+    />
+  )
 
   return (
     <div className="student">
@@ -213,53 +274,81 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
         ) : q.status === 'open' ? (
           <div className="adjuster">
             <h1>这道题你想回答吗？</h1>
-            <p className="muted small">想回答就加，不想回答就减。转盘前可以随时改。</p>
-            <div className="weight-row">
-              <button className="step minus" onClick={() => step(-1)} disabled={weight === 0} aria-label="减一">
-                −
-              </button>
-              <div className="weight">
-                <span className="weight-num">{weight ?? q.weight}</span>
-                <span className="muted small">我的权重</span>
-              </div>
-              <button className="step plus" onClick={() => step(1)} aria-label="加一">
-                +
-              </button>
+            {wheel}
+            {q.is_candidate ? (
+              <p className="chance">
+                被抽中的机会约 <b>{formatChance(chance)}</b>
+              </p>
+            ) : (
+              <p className="muted small">你这题不在转盘上（老师标记你不在场，或本节课你已经被抽过）。</p>
+            )}
+            <div className="weight">
+              <span className="muted small">我的权重</span>
+              <span className="weight-num">{myWeight}</span>
             </div>
-            <p className="hint">{hintFor(weight ?? q.weight)}</p>
-          </div>
-        ) : !revealed ? (
-          <div className="waiting">
-            <div className="pulse spin" />
-            <h1>转盘转动中…</h1>
-          </div>
-        ) : q.is_me ? (
-          <div className="result me">
-            <p>被抽中的是</p>
-            <p className="winner-name">你！</p>
-            <p>请准备回答 🙋</p>
+            <div className="slider">
+              <input
+                type="range"
+                min={MIN_WEIGHT}
+                max={MAX_WEIGHT}
+                step={1}
+                value={myWeight}
+                onChange={(e) => changeWeight(Number(e.target.value))}
+                aria-label="我的权重"
+                style={{ '--fill': `${pct(myWeight)}%` } as CSSProperties}
+              />
+              <div className="slider-labels" aria-hidden>
+                <span>不想答</span>
+                <button className="slider-normal" style={{ left: `${pct(NORMAL_WEIGHT)}%` }} onClick={() => changeWeight(NORMAL_WEIGHT)}>
+                  平时
+                </button>
+                <span>很想答</span>
+              </div>
+            </div>
+            <p className="hint">{hintFor(myWeight)}</p>
           </div>
         ) : (
-          <div className="result">
-            <p className="muted">被抽中的是</p>
-            <p className="winner-name">{q.winner_name}</p>
-            <p className="muted small">等待下一题…</p>
+          <div className="adjuster">
+            <h1>{revealed ? '结果' : '转盘转动中…'}</h1>
+            {wheel}
+            {revealed &&
+              (q.is_me ? (
+                <div className="result me">
+                  <p>被抽中的是</p>
+                  <p className="winner-name">你！</p>
+                  <p>请准备回答 🙋</p>
+                </div>
+              ) : (
+                <div className="result">
+                  <p className="muted">被抽中的是</p>
+                  <p className="winner-name">{q.winner_name}</p>
+                  <p className="muted small">等待下一题…</p>
+                </div>
+              ))}
           </div>
         )}
 
         {error && <p className="error">{error}</p>}
       </div>
       <p className="privacy-note">
-        老师看不到你每道题的选择，只能看到下课后累计加了多少、减了多少。
+        转盘上只显示你自己的部分，看不到别人的名字。老师看不到你每道题的选择，只能看到下课后累计加了多少、减了多少。
       </p>
     </div>
   )
 }
 
+const pct = (w: number) => ((w - MIN_WEIGHT) / (MAX_WEIGHT - MIN_WEIGHT)) * 100
+
+function formatChance(p: number) {
+  const pct = p * 100
+  return pct >= 10 ? `${Math.round(pct)}%` : `${pct.toFixed(1)}%`
+}
+
 function hintFor(w: number) {
-  if (w === 0) return '你这题不会被抽中。'
+  if (w <= MIN_WEIGHT) return '已经是最低了，被抽中的机会很小。'
   if (w < 10) return '被抽中的机会比平时小。'
   if (w === 10) return '和平时一样的机会。'
   if (w < 20) return '被抽中的机会比平时大。'
-  return '被抽中的机会大很多！'
+  if (w < MAX_WEIGHT) return '被抽中的机会大很多！'
+  return '已经是最高了！'
 }

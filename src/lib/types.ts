@@ -37,6 +37,9 @@ export type StudentState =
         id: string
         status: 'open' | 'spun'
         weight: number
+        is_candidate: boolean
+        total_weight: number
+        candidate_count: number
         winner_name: string | null
         is_me: boolean | null
         seconds_since_spin: number | null
