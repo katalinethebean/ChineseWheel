@@ -18,8 +18,17 @@ function colorIndex(i: number, count: number) {
   return i % COLORS.length
 }
 
-function shorten(name: string) {
-  return [...name].length > 6 ? [...name].slice(0, 5).join('') + '…' : name
+// 中文字占 1 个宽度，英文字母约占一半；超过 6 个宽度就截断
+const charWidth = (ch: string) => (/[\u2e80-\uffff]/.test(ch) ? 1 : 0.55)
+
+function shorten(name: string, max = 6) {
+  let width = 0
+  const chars = [...name]
+  for (let i = 0; i < chars.length; i++) {
+    width += charWidth(chars[i])
+    if (width > max) return chars.slice(0, i).join('').trimEnd() + '…'
+  }
+  return name
 }
 
 export function Wheel({ names, rotation, spinning, winnerIndex }: Props) {
@@ -43,7 +52,7 @@ export function Wheel({ names, rotation, spinning, winnerIndex }: Props) {
           {count === 0 && (
             <>
               <circle r={R} fill="var(--paper-2)" />
-              <text textAnchor="middle" dominantBaseline="central" fontSize={10} fill="var(--muted)">
+              <text y={-48} textAnchor="middle" dominantBaseline="central" fontSize={11} fill="var(--muted)">
                 暂无在场学生
               </text>
             </>
