@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-/** 每隔 ms 毫秒调用一次 fn（页面隐藏时暂停），并立即调用一次 */
+/** 立即调用一次 fn，之后每隔 ms 毫秒调用一次（页面在后台时暂停） */
 export function usePolling(fn: () => unknown, ms: number, enabled = true) {
   const fnRef = useRef(fn)
   fnRef.current = fn
@@ -9,7 +9,7 @@ export function usePolling(fn: () => unknown, ms: number, enabled = true) {
     const tick = () => {
       if (document.visibilityState === 'visible') fnRef.current()
     }
-    tick()
+    fnRef.current()
     const id = window.setInterval(tick, ms)
     document.addEventListener('visibilitychange', tick)
     return () => {
