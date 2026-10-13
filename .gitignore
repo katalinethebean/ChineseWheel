@@ -6,3 +6,4 @@ supabase/.temp
 .DS_Store
 .netlify
 .vercel
+.env*
