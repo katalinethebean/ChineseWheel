@@ -1,39 +1,38 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
 import { SPIN_MS } from '../components/Wheel'
 import { usePolling } from '../lib/hooks'
 import { errorText, rpc, supabase } from '../lib/supabase'
-import type { PublicClass, StudentState } from '../lib/types'
+import type { StudentState } from '../lib/types'
 
-const tokenKey = (code: string) => `wheel_token_${code.toUpperCase()}`
+type RosterEntry = { id: string; name: string; claimed: boolean }
 
-function readToken(code: string): string | null {
+const TOKEN_KEY = 'wheel_token'
+
+function readToken(): string | null {
   try {
-    return localStorage.getItem(tokenKey(code))
+    return localStorage.getItem(TOKEN_KEY)
   } catch {
     return null
   }
 }
 
-function writeToken(code: string, token: string | null) {
+function writeToken(token: string | null) {
   try {
-    if (token) localStorage.setItem(tokenKey(code), token)
-    else localStorage.removeItem(tokenKey(code))
+    if (token) localStorage.setItem(TOKEN_KEY, token)
+    else localStorage.removeItem(TOKEN_KEY)
   } catch {
     // 隐私模式下可能无法保存，只是下次需要重新选名字
   }
 }
 
-export function Join() {
-  const { code = '' } = useParams()
-  const [token, setToken] = useState<string | null>(() => readToken(code))
+export function Student() {
+  const [token, setToken] = useState<string | null>(() => readToken())
 
   if (!token) {
     return (
       <PickName
-        code={code}
         onClaimed={(t) => {
-          writeToken(code, t)
+          writeToken(t)
           setToken(t)
         }}
       />
@@ -43,26 +42,24 @@ export function Join() {
     <StudentView
       token={token}
       onInvalid={() => {
-        writeToken(code, null)
+        writeToken(null)
         setToken(null)
       }}
     />
   )
 }
 
-function PickName({ code, onClaimed }: { code: string; onClaimed: (token: string) => void }) {
-  const [cls, setCls] = useState<PublicClass | null | undefined>(undefined)
+function PickName({ onClaimed }: { onClaimed: (token: string) => void }) {
+  const [roster, setRoster] = useState<RosterEntry[] | undefined>(undefined)
   const [chosen, setChosen] = useState<{ id: string; name: string } | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
   const load = useCallback(async () => {
-    try {
-      setCls(await rpc<PublicClass | null>('get_class_public', { p_join_code: code }))
-    } catch (e) {
-      setError(errorText(e))
-    }
-  }, [code])
+    const { data, error } = await supabase.from('students').select('id, name, claimed').order('seq')
+    if (error) setError(errorText(error))
+    else setRoster(data)
+  }, [])
 
   useEffect(() => {
     load()
@@ -73,7 +70,7 @@ function PickName({ code, onClaimed }: { code: string; onClaimed: (token: string
     setBusy(true)
     setError('')
     try {
-      onClaimed(await rpc<string>('claim_student', { p_join_code: code, p_student_id: chosen.id }))
+      onClaimed(await rpc<string>('claim_student', { p_student_id: chosen.id }))
     } catch (e) {
       setError(errorText(e))
       setChosen(null)
@@ -83,26 +80,17 @@ function PickName({ code, onClaimed }: { code: string; onClaimed: (token: string
     }
   }
 
-  if (cls === undefined) return <div className="student"><p className="muted">{error || '加载中…'}</p></div>
-  if (cls === null)
-    return (
-      <div className="student">
-        <div className="student-card">
-          <h1>找不到这个班级</h1>
-          <p className="muted">请重新扫描老师屏幕上的二维码。</p>
-        </div>
-      </div>
-    )
+  if (roster === undefined) return <div className="student"><p className="muted">{error || '加载中…'}</p></div>
 
   return (
     <div className="student">
       <div className="student-card">
-        <p className="muted small">{cls.class_name}</p>
         <h1>你是谁？</h1>
         <p className="muted small">选择自己的名字。选好后这台手机会记住你。</p>
         {error && <p className="error">{error}</p>}
         <div className="name-grid">
-          {cls.students.map((s) => (
+          {roster.length === 0 && <p className="muted">老师还没有添加名单。</p>}
+          {roster.map((s) => (
             <button
               key={s.id}
               className="name-btn"
@@ -148,7 +136,6 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
   const onInvalidRef = useRef(onInvalid)
   onInvalidRef.current = onInvalid
   const questionId = state?.valid ? state.question?.id : undefined
-  const classId = state?.valid ? state.class_id : undefined
 
   const load = useCallback(async () => {
     try {
@@ -175,17 +162,14 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
 
   // 实时推送：老师开题 / 转盘时立刻刷新
   useEffect(() => {
-    if (!classId) return
     const channel = supabase
-      .channel(`questions-${classId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'questions', filter: `class_id=eq.${classId}` }, () =>
-        load(),
-      )
+      .channel('questions')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'questions' }, () => load())
       .subscribe()
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [classId, load])
+  }, [load])
 
   // 揭晓倒计时
   useEffect(() => {
@@ -217,7 +201,7 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
     <div className="student">
       <div className="student-card">
         <p className="muted small">
-          {state.class_name} · <b>{state.student_name}</b>
+          我是 <b>{state.student_name}</b>
         </p>
 
         {!state.lesson_active || !q ? (

@@ -1,10 +1,10 @@
 import { QRCodeSVG } from 'qrcode.react'
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { SPIN_MS, Wheel } from '../components/Wheel'
 import { usePolling } from '../lib/hooks'
 import { errorText, rpc, supabase } from '../lib/supabase'
-import type { ClassRow, LessonRow, TeacherLessonState } from '../lib/types'
+import type { LessonRow, TeacherLessonState } from '../lib/types'
 import { targetRotation } from '../lib/wheel'
 
 type Person = { id: string; name: string }
@@ -13,8 +13,6 @@ type Phase = 'idle' | 'spinning' | 'result'
 const isToday = (iso: string) => new Date(iso).toDateString() === new Date().toDateString()
 
 export function Lesson() {
-  const { classId } = useParams()
-  const [cls, setCls] = useState<ClassRow | null>(null)
   const [lesson, setLesson] = useState<LessonRow | null | undefined>(undefined)
   const [st, setSt] = useState<TeacherLessonState | null>(null)
   const [phase, setPhase] = useState<Phase>('idle')
@@ -27,16 +25,11 @@ export function Lesson() {
   const [settledMsg, setSettledMsg] = useState(false)
 
   const loadLesson = useCallback(async () => {
-    const [c, l] = await Promise.all([
-      supabase.from('classes').select('*').eq('id', classId!).single(),
-      supabase.from('lessons').select('*').eq('class_id', classId!).is('settled_at', null).maybeSingle(),
-    ])
-    if (c.error) return setError(errorText(c.error))
-    if (l.error) return setError(errorText(l.error))
-    setCls(c.data)
-    setLesson(l.data)
-    if (!l.data) setSt(null)
-  }, [classId])
+    const { data, error } = await supabase.from('lessons').select('*').is('settled_at', null).maybeSingle()
+    if (error) return setError(errorText(error))
+    setLesson(data)
+    if (!data) setSt(null)
+  }, [])
 
   useEffect(() => {
     loadLesson()
@@ -75,7 +68,7 @@ export function Lesson() {
 
   const startLesson = () =>
     act(async () => {
-      await rpc('start_lesson', { p_class_id: classId, p_exclude_picked: false })
+      await rpc('start_lesson', { p_exclude_picked: false })
       setSettledMsg(false)
       await loadLesson()
     })
@@ -173,21 +166,19 @@ export function Lesson() {
     return () => window.removeEventListener('keydown', onKey)
   })
 
-  if (!cls || lesson === undefined) return error ? <p className="error">{error}</p> : <p className="muted">加载中…</p>
+  if (lesson === undefined) return error ? <p className="error">{error}</p> : <p className="muted">加载中…</p>
 
-  const joinUrl = `${window.location.origin}/join/${cls.join_code}`
+  const joinUrl = `${window.location.origin}/student`
 
   if (!lesson) {
     return (
       <>
-        <p className="crumbs">
-          <Link to="/">我的班级</Link> / <Link to={`/class/${cls.id}`}>{cls.name}</Link> / 上课
-        </p>
         <div className="card start-card">
-          <h1>{cls.name}</h1>
+          <h1>准备上课</h1>
+          <p className="muted">开始上课后，学生打开学生页面就会自动出现在在场名单里。</p>
           {settledMsg && (
             <p className="notice">
-              已下课结算。<Link to={`/class/${cls.id}/stats`}>查看统计 →</Link>
+              已下课结算。<Link to="/teacher/stats">查看统计 →</Link>
             </p>
           )}
           {error && <p className="error">{error}</p>}
@@ -205,9 +196,7 @@ export function Lesson() {
   return (
     <div className="lesson">
       <div className="lesson-head">
-        <p className="crumbs">
-          <Link to="/">我的班级</Link> / <Link to={`/class/${cls.id}`}>{cls.name}</Link> / 上课
-        </p>
+        <p className="muted small">上课中 · {new Date(lesson.started_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })} 开始</p>
         <button className="btn" onClick={settle} disabled={busy || phase === 'spinning'}>
           下课结算
         </button>

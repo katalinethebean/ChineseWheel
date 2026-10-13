@@ -793,3 +793,91 @@ textarea {
   color: var(--muted);
   margin-top: 1.25rem;
 }
+
+/* ───────── 首页 ───────── */
+
+.home {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  text-align: center;
+}
+.home h1 {
+  font-size: 2.2rem;
+  margin: 0.6rem 0 2rem;
+}
+.home-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 260px));
+  gap: 1.25rem;
+  width: 100%;
+  justify-content: center;
+}
+.choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 2rem 1.25rem;
+  border-radius: 22px;
+  border: 2px solid var(--ink);
+  box-shadow: 0 6px 0 var(--ink);
+  color: var(--ink);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.choice:hover {
+  text-decoration: none;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 0 var(--ink);
+}
+.choice:active {
+  transform: translateY(5px);
+  box-shadow: 0 1px 0 var(--ink);
+}
+.teacher-choice {
+  background: var(--yellow);
+}
+.student-choice {
+  background: #cfe6dd;
+}
+.choice-icon {
+  font-size: 3rem;
+  line-height: 1;
+}
+.choice-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+.choice-desc {
+  font-size: 0.9rem;
+  opacity: 0.75;
+}
+@media (max-width: 520px) {
+  .home-choices {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 老师端导航 */
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+}
+.tabs a {
+  padding: 0.35rem 0.9rem;
+  border-radius: 99px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.tabs a:hover {
+  text-decoration: none;
+  color: var(--ink);
+}
+.tabs a.active {
+  background: var(--ink);
+  color: var(--paper);
+}

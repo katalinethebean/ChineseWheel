@@ -1,48 +1,31 @@
--- 课堂转盘：表结构、权限和数据库函数
+-- 课堂转盘：表结构、权限和数据库函数（单个班级，不需要登录）
 --
--- 隐私核心：adjustments（每人每题的加减）没有任何读取策略，客户端无法直接读取。
+-- 隐私核心：adjustments（每人每题的加减）没有任何读取权限，客户端无法直接读取。
 -- 只能通过下面的 security definer 函数间接使用，函数只返回汇总结果。
 
 create extension if not exists pgcrypto with schema extensions;
 
 -- ───────────────────────── 表 ─────────────────────────
 
-create or replace function public.gen_join_code() returns text
-language sql volatile set search_path = public as $$
-  select string_agg(substr('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 1 + floor(random() * 32)::int, 1), '')
-  from generate_series(1, 6);
-$$;
-
-create table public.classes (
+create table public.students (
   id uuid primary key default gen_random_uuid(),
-  teacher_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
-  name text not null check (length(trim(name)) > 0),
-  join_code text not null unique default public.gen_join_code(),
+  name text not null unique check (length(trim(name)) > 0),
+  seq bigint generated always as identity,
+  device_token_hash text unique,
+  claimed boolean generated always as (device_token_hash is not null) stored,
+  total_plus int not null default 0,
+  total_minus int not null default 0,
   created_at timestamptz not null default now()
 );
 
-create table public.students (
-  id uuid primary key default gen_random_uuid(),
-  class_id uuid not null references public.classes(id) on delete cascade,
-  name text not null check (length(trim(name)) > 0),
-  seq bigint generated always as identity,
-  device_token_hash text unique,
-  total_plus int not null default 0,
-  total_minus int not null default 0,
-  created_at timestamptz not null default now(),
-  unique (class_id, name)
-);
-create index on public.students (class_id);
-
 create table public.lessons (
   id uuid primary key default gen_random_uuid(),
-  class_id uuid not null references public.classes(id) on delete cascade,
   started_at timestamptz not null default now(),
   settled_at timestamptz,
   exclude_picked boolean not null default false
 );
--- 每个班同时只能有一节未结算的课
-create unique index lessons_one_active on public.lessons (class_id) where settled_at is null;
+-- 同时只能有一节未结算的课
+create unique index lessons_one_active on public.lessons ((settled_at is null)) where settled_at is null;
 
 create table public.attendance (
   lesson_id uuid not null references public.lessons(id) on delete cascade,
@@ -54,7 +37,6 @@ create table public.attendance (
 create table public.questions (
   id uuid primary key default gen_random_uuid(),
   lesson_id uuid not null references public.lessons(id) on delete cascade,
-  class_id uuid not null references public.classes(id) on delete cascade,
   status text not null default 'open' check (status in ('open', 'spun', 'cancelled')),
   winner_student_id uuid references public.students(id) on delete set null,
   created_at timestamptz not null default now(),
@@ -73,12 +55,6 @@ create table public.adjustments (
 
 -- ───────────────────────── 权限 ─────────────────────────
 
-create or replace function public.is_class_teacher(p_class_id uuid) returns boolean
-language sql stable security definer set search_path = public as $$
-  select exists (select 1 from classes where id = p_class_id and teacher_id = auth.uid());
-$$;
-
-alter table public.classes enable row level security;
 alter table public.students enable row level security;
 alter table public.lessons enable row level security;
 alter table public.attendance enable row level security;
@@ -86,36 +62,25 @@ alter table public.questions enable row level security;
 alter table public.adjustments enable row level security;
 
 -- 先收回所有表权限，再按需授予
-revoke all on public.classes, public.students, public.lessons, public.attendance,
-  public.questions, public.adjustments from anon, authenticated;
+revoke all on public.students, public.lessons, public.attendance, public.questions, public.adjustments
+  from anon, authenticated;
 
--- 老师：班级
-grant select, delete on public.classes to authenticated;
-grant insert (name), update (name) on public.classes to authenticated;
-create policy classes_teacher on public.classes for all to authenticated
-  using (teacher_id = auth.uid()) with check (teacher_id = auth.uid());
+-- 学生名单：设备令牌哈希不可读；统计数字只能通过函数修改
+grant select (id, name, seq, claimed, total_plus, total_minus, created_at) on public.students to anon, authenticated;
+grant insert (name), update (name), delete on public.students to anon, authenticated;
+create policy students_all on public.students for all to anon, authenticated using (true) with check (true);
 
--- 老师：学生（统计字段和设备绑定只能通过函数修改）
-grant select, delete on public.students to authenticated;
-grant insert (class_id, name), update (name) on public.students to authenticated;
-create policy students_teacher on public.students for all to authenticated
-  using (public.is_class_teacher(class_id)) with check (public.is_class_teacher(class_id));
+-- 课次：只能改"抽过不再抽"开关，开课 / 结算走函数
+grant select, update (exclude_picked) on public.lessons to anon, authenticated;
+create policy lessons_all on public.lessons for all to anon, authenticated using (true) with check (true);
 
--- 老师：课次（只能改"抽过不再抽"开关，开课/结算走函数）
-grant select on public.lessons to authenticated;
-grant update (exclude_picked) on public.lessons to authenticated;
-create policy lessons_teacher on public.lessons for all to authenticated
-  using (public.is_class_teacher(class_id)) with check (public.is_class_teacher(class_id));
+-- 出勤：老师可手动标记在场 / 不在场
+grant select, insert, update, delete on public.attendance to anon, authenticated;
+create policy attendance_all on public.attendance for all to anon, authenticated using (true) with check (true);
 
--- 老师：出勤（可手动标记在场 / 不在场）
-grant select, insert, update, delete on public.attendance to authenticated;
-create policy attendance_teacher on public.attendance for all to authenticated
-  using (public.is_class_teacher((select class_id from public.lessons where id = lesson_id)))
-  with check (public.is_class_teacher((select class_id from public.lessons where id = lesson_id)));
-
--- 题目：公开可读（学生手机靠它接收实时推送），不含任何敏感信息
+-- 题目：只读（学生手机靠它接收实时推送），不含任何敏感信息
 grant select on public.questions to anon, authenticated;
-create policy questions_public_read on public.questions for select to anon, authenticated using (true);
+create policy questions_read on public.questions for select to anon, authenticated using (true);
 
 -- adjustments：不授予任何权限，也不建任何策略。
 
@@ -133,13 +98,9 @@ language sql stable security definer set search_path = public as $$
   select * from students where device_token_hash = public.hash_token(p_token);
 $$;
 
-create or replace function public.require_teacher(p_class_id uuid) returns void
-language plpgsql stable security definer set search_path = public as $$
-begin
-  if p_class_id is null or not public.is_class_teacher(p_class_id) then
-    raise exception '没有权限' using errcode = '42501';
-  end if;
-end;
+create or replace function public.active_lesson_id() returns uuid
+language sql stable security definer set search_path = public as $$
+  select id from lessons where settled_at is null order by started_at desc limit 1;
 $$;
 
 -- 本题的候选人和权重（只在数据库内部使用）
@@ -162,29 +123,12 @@ $$;
 
 -- ───────────────────────── 学生端函数 ─────────────────────────
 
-create or replace function public.get_class_public(p_join_code text) returns json
-language sql stable security definer set search_path = public as $$
-  select json_build_object(
-    'class_id', c.id,
-    'class_name', c.name,
-    'students', coalesce((
-      select json_agg(json_build_object('id', s.id, 'name', s.name, 'claimed', s.device_token_hash is not null)
-                      order by s.seq)
-      from students s where s.class_id = c.id
-    ), '[]'::json)
-  )
-  from classes c where c.join_code = upper(trim(p_join_code));
-$$;
-
-create or replace function public.claim_student(p_join_code text, p_student_id uuid) returns text
+create or replace function public.claim_student(p_student_id uuid) returns text
 language plpgsql security definer set search_path = public, extensions as $$
 declare
   v_token text;
 begin
-  if not exists (
-    select 1 from students s join classes c on c.id = s.class_id
-    where s.id = p_student_id and c.join_code = upper(trim(p_join_code))
-  ) then
+  if not exists (select 1 from students where id = p_student_id) then
     raise exception '找不到这个学生' using errcode = 'P0002';
   end if;
 
@@ -211,9 +155,7 @@ begin
     return json_build_object('valid', false);
   end if;
 
-  select id into v_lesson_id from lessons
-  where class_id = s.class_id and settled_at is null
-  order by started_at desc limit 1;
+  v_lesson_id := public.active_lesson_id();
 
   if v_lesson_id is not null then
     -- 打开页面即算在场；老师手动标记为不在场的不会被覆盖
@@ -233,8 +175,6 @@ begin
     'valid', true,
     'student_id', s.id,
     'student_name', s.name,
-    'class_id', s.class_id,
-    'class_name', (select name from classes where id = s.class_id),
     'lesson_active', v_lesson_id is not null,
     'question', case when q.id is null then null else json_build_object(
       'id', q.id,
@@ -265,7 +205,7 @@ begin
   end if;
 
   -- for share：和 spin 的 for update 互斥，转盘时不会有人同时改权重
-  select * into q from questions where id = p_question_id and class_id = s.class_id for share;
+  select * into q from questions where id = p_question_id for share;
   if q.id is null then
     raise exception '找不到这道题' using errcode = 'P0002';
   end if;
@@ -287,16 +227,15 @@ $$;
 
 -- ───────────────────────── 老师端函数 ─────────────────────────
 
-create or replace function public.start_lesson(p_class_id uuid, p_exclude_picked boolean default false) returns uuid
+create or replace function public.start_lesson(p_exclude_picked boolean default false) returns uuid
 language plpgsql security definer set search_path = public as $$
 declare
   v_id uuid;
 begin
-  perform public.require_teacher(p_class_id);
-  if exists (select 1 from lessons where class_id = p_class_id and settled_at is null) then
-    raise exception '这个班还有未结算的课，请先下课结算' using errcode = 'P0001';
+  if public.active_lesson_id() is not null then
+    raise exception '还有未结算的课，请先下课结算' using errcode = 'P0001';
   end if;
-  insert into lessons (class_id, exclude_picked) values (p_class_id, p_exclude_picked) returning id into v_id;
+  insert into lessons (exclude_picked) values (p_exclude_picked) returning id into v_id;
   return v_id;
 end;
 $$;
@@ -308,14 +247,16 @@ declare
   v_id uuid;
 begin
   select * into l from lessons where id = p_lesson_id;
-  perform public.require_teacher(l.class_id);
+  if l.id is null then
+    raise exception '找不到这节课' using errcode = 'P0002';
+  end if;
   if l.settled_at is not null then
     raise exception '这节课已经结算了' using errcode = 'P0001';
   end if;
 
   select id into v_id from questions where lesson_id = l.id and status = 'open';
   if v_id is null then
-    insert into questions (lesson_id, class_id) values (l.id, l.class_id) returning id into v_id;
+    insert into questions (lesson_id) values (l.id) returning id into v_id;
   end if;
   return v_id;
 end;
@@ -331,7 +272,9 @@ declare
   v_winner uuid;
 begin
   select * into q from questions where id = p_question_id for update;
-  perform public.require_teacher(q.class_id);
+  if q.id is null then
+    raise exception '找不到这道题' using errcode = 'P0002';
+  end if;
   if q.status <> 'open' then
     raise exception '这道题已经转过了' using errcode = 'P0001';
   end if;
@@ -371,7 +314,9 @@ declare
   q questions;
 begin
   select * into l from lessons where id = p_lesson_id;
-  perform public.require_teacher(l.class_id);
+  if l.id is null then
+    raise exception '找不到这节课' using errcode = 'P0002';
+  end if;
 
   select * into q from questions
   where lesson_id = l.id and status <> 'cancelled'
@@ -390,7 +335,6 @@ begin
       ) order by s.seq)
       from students s
       left join attendance a on a.lesson_id = l.id and a.student_id = s.id
-      where s.class_id = l.class_id
     ), '[]'::json),
     'question', case when q.id is null then null else json_build_object(
       'id', q.id,
@@ -409,8 +353,7 @@ declare
   l lessons;
 begin
   select * into l from lessons where id = p_lesson_id for update;
-  perform public.require_teacher(l.class_id);
-  if l.settled_at is not null then
+  if l.id is null or l.settled_at is not null then
     return;  -- 已结算过，不重复累加
   end if;
 
@@ -435,37 +378,27 @@ end;
 $$;
 
 create or replace function public.release_student(p_student_id uuid) returns void
-language plpgsql security definer set search_path = public as $$
-begin
-  perform public.require_teacher((select class_id from students where id = p_student_id));
+language sql security definer set search_path = public as $$
   update students set device_token_hash = null where id = p_student_id;
-end;
 $$;
 
-create or replace function public.reset_stats(p_class_id uuid) returns void
-language plpgsql security definer set search_path = public as $$
-begin
-  perform public.require_teacher(p_class_id);
-  update students set total_plus = 0, total_minus = 0 where class_id = p_class_id;
-end;
+create or replace function public.reset_stats() returns void
+language sql security definer set search_path = public as $$
+  update students set total_plus = 0, total_minus = 0 where true;
 $$;
 
 -- ───────────────────────── 函数权限 ─────────────────────────
 
 revoke execute on all functions in schema public from public, anon, authenticated;
 
-grant execute on function public.is_class_teacher(uuid) to authenticated;
-grant execute on function public.gen_join_code() to authenticated;  -- classes.join_code 的默认值
-
-grant execute on function public.get_class_public(text) to anon, authenticated;
-grant execute on function public.claim_student(text, uuid) to anon, authenticated;
+grant execute on function public.claim_student(uuid) to anon, authenticated;
 grant execute on function public.student_state(text) to anon, authenticated;
 grant execute on function public.adjust(text, uuid, int) to anon, authenticated;
 
-grant execute on function public.start_lesson(uuid, boolean) to authenticated;
-grant execute on function public.start_question(uuid) to authenticated;
-grant execute on function public.spin(uuid) to authenticated;
-grant execute on function public.teacher_lesson_state(uuid) to authenticated;
-grant execute on function public.settle_lesson(uuid) to authenticated;
-grant execute on function public.release_student(uuid) to authenticated;
-grant execute on function public.reset_stats(uuid) to authenticated;
+grant execute on function public.start_lesson(boolean) to anon, authenticated;
+grant execute on function public.start_question(uuid) to anon, authenticated;
+grant execute on function public.spin(uuid) to anon, authenticated;
+grant execute on function public.teacher_lesson_state(uuid) to anon, authenticated;
+grant execute on function public.settle_lesson(uuid) to anon, authenticated;
+grant execute on function public.release_student(uuid) to anon, authenticated;
+grant execute on function public.reset_stats() to anon, authenticated;
