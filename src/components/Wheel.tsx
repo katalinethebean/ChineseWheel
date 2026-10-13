@@ -65,6 +65,8 @@ export function Wheel({ names, rotation, spinning, winnerIndex }: Props) {
               const ci = colorIndex(i, count)
               const mid = a0 + seg / 2
               const isWinner = winnerIndex === i
+              // 左半边的文字翻转 180°，保证名字不会倒着读
+              const flip = mid > 180
               return (
                 <g key={i} className={isWinner ? 'wheel-seg winner' : 'wheel-seg'}>
                   <path
@@ -74,9 +76,9 @@ export function Wheel({ names, rotation, spinning, winnerIndex }: Props) {
                     strokeWidth={count > 30 ? 0.3 : 0.6}
                   />
                   <text
-                    transform={`rotate(${mid - 90})`}
-                    x={R * 0.9}
-                    textAnchor="end"
+                    transform={`rotate(${flip ? mid + 90 : mid - 90})`}
+                    x={flip ? -R * 0.9 : R * 0.9}
+                    textAnchor={flip ? 'start' : 'end'}
                     dominantBaseline="central"
                     fontSize={fontSize}
                     fontWeight={700}
