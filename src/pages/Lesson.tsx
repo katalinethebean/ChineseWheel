@@ -212,12 +212,14 @@ export function Lesson() {
 
       <div className="lesson-grid">
         <section className="stage">
-          <Wheel
-            slices={equalSlices(wheelPeople.map((p) => p.name))}
-            rotation={rotation}
-            spinning={phase === 'spinning'}
-            winnerIndex={winnerIndex}
-          />
+          <div className="wheel-area">
+            <Wheel
+              slices={equalSlices(wheelPeople.map((p) => p.name))}
+              rotation={rotation}
+              spinning={phase === 'spinning'}
+              winnerIndex={winnerIndex}
+            />
+          </div>
 
           <div className="stage-status">
             {phase === 'spinning' ? (

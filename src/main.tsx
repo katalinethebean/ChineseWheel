@@ -15,7 +15,7 @@ createRoot(document.getElementById('root')!).render(
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/student" element={<Student />} />
-        <Route path="/teacher" element={<TeacherShell wide><Lesson /></TeacherShell>} />
+        <Route path="/teacher" element={<TeacherShell fit><Lesson /></TeacherShell>} />
         <Route path="/teacher/roster" element={<TeacherShell><Roster /></TeacherShell>} />
         <Route path="/teacher/stats" element={<TeacherShell><Stats /></TeacherShell>} />
         <Route path="*" element={<Navigate to="/" replace />} />
