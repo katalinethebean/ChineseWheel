@@ -1,5 +1,5 @@
 import { QRCodeSVG } from 'qrcode.react'
-import { useCallback, useEffect, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { SPIN_MS, Wheel, equalSlices } from '../components/Wheel'
 import { usePolling } from '../lib/hooks'
@@ -180,7 +180,7 @@ export function Lesson() {
           </p>
         )}
         {error && <p className="error">{error}</p>}
-        <button className="btn accent xl" onClick={startLesson} disabled={busy}>
+        <button className="btn primary xl" onClick={startLesson} disabled={busy}>
           开始上课
         </button>
       </div>
@@ -219,7 +219,7 @@ export function Lesson() {
                   <b>{question!.adjusted_count}</b>/{presentCount} 已调整
                 </span>
                 <button
-                  className="btn accent xl"
+                  className="btn primary xl"
                   onClick={spin}
                   disabled={busy || phase === 'spinning' || candidates.length === 0}
                 >
@@ -227,7 +227,7 @@ export function Lesson() {
                 </button>
               </>
             ) : (
-              <button className="btn primary xl" onClick={newQuestion} disabled={busy || phase === 'spinning'}>
+              <button className="btn xl" onClick={newQuestion} disabled={busy || phase === 'spinning'}>
                 开始新题<kbd>回车</kbd>
               </button>
             )}
@@ -289,9 +289,8 @@ export function Lesson() {
       {phase === 'result' && winner && (
         <div className="overlay" onClick={closeResult}>
           <div className="winner" onClick={(e) => e.stopPropagation()}>
-            <Confetti />
             <p className="winner-name">{winner.name}</p>
-            <button className="btn primary lg" onClick={newQuestion} autoFocus>
+            <button className="btn lg" onClick={newQuestion} autoFocus>
               下一题
             </button>
           </div>
@@ -306,28 +305,6 @@ export function Lesson() {
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-const CONFETTI_COLORS = ['var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)', 'var(--c5)', 'var(--c6)']
-
-/** 抽中时的一圈彩色纸屑（纯 CSS 动画，减少动效时不显示） */
-function Confetti() {
-  return (
-    <div className="confetti" aria-hidden>
-      {Array.from({ length: 18 }, (_, i) => (
-        <span
-          key={i}
-          style={
-            {
-              '--a': `${(i / 18) * 360}deg`,
-              '--d': `${140 + (i % 3) * 50}px`,
-              background: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-            } as CSSProperties
-          }
-        />
-      ))}
     </div>
   )
 }

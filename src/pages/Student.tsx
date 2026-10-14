@@ -86,6 +86,7 @@ function PickName({ onClaimed }: { onClaimed: (token: string) => void }) {
   return (
     <div className="student">
       <div className="pick">
+        <img className="pick-logo" src="/logo.jpg" alt="硅雞科技" width={72} height={72} />
         <h1>你是谁？</h1>
         {error && <p className="error">{error}</p>}
         {roster.length === 0 ? (
@@ -108,7 +109,7 @@ function PickName({ onClaimed }: { onClaimed: (token: string) => void }) {
       </div>
 
       <div className={chosen ? 'pick-confirm show' : 'pick-confirm'}>
-        <button className="btn accent lg block" onClick={confirm} disabled={!chosen || busy}>
+        <button className="btn primary lg block" onClick={confirm} disabled={!chosen || busy}>
           我是 {chosen?.name ?? '…'}
         </button>
       </div>
@@ -119,8 +120,8 @@ function PickName({ onClaimed }: { onClaimed: (token: string) => void }) {
 const MIN_WEIGHT = 1
 const MAX_WEIGHT = 30
 const NORMAL_WEIGHT = 10
-const ME_COLOR = '#f25f4c'
-const OTHER_COLORS = ['#e6e5ee', '#d6d4e2']
+const ME_COLOR = '#d4473a'
+const OTHER_COLORS = ['#d9dbdf', '#c8cbd0']
 
 function StudentView({ token, onInvalid }: { token: string; onInvalid: () => void }) {
   const [state, setState] = useState<StudentState | null>(null)
@@ -332,7 +333,7 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
 function CreditsBadge({ credits, pending }: { credits: number; pending: number }) {
   return (
     <div className="credits" title="减权花 credits，加权赚 credits，转盘后结算">
-      <span className="credits-coin" aria-hidden />
+      <img className="credits-coin" src="/logo.jpg" alt="" />
       <span className="credits-num">{credits}</span>
       <span className="credits-label">credits</span>
       {pending !== 0 && (

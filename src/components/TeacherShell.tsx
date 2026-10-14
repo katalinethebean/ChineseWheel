@@ -7,7 +7,7 @@ export function TeacherShell({ children, fit = false }: { children: ReactNode; f
     <div className={fit ? 'teacher fit' : 'teacher'}>
       <header className="topbar">
         <Link to="/" className="brand">
-          <img src="/favicon.svg" alt="" width={26} height={26} />
+          <img src="/logo.jpg" alt="" width={30} height={30} />
           课堂转盘
         </Link>
         <nav className="tabs">

@@ -1,8 +1,9 @@
+import { useId } from 'react'
 import { layoutArcs, polar } from '../lib/wheel'
 
-// 和 styles.css 里的 --c1…--c6 一致
-const COLORS = ['#f25f4c', '#ffc23c', '#2bb58c', '#3d8bfd', '#8f6bef', '#ff8a3d']
-const TEXT_ON = ['#fff', '#1e1b2e', '#1e1b2e', '#fff', '#fff', '#1e1b2e']
+// 阳极氧化金属色，和 styles.css 里的 --c1…--c6 一致
+const COLORS = ['#d4473a', '#e0a93e', '#2c9a80', '#3a6fc4', '#7656c2', '#d27434']
+const TEXT_ON = ['#fff', '#141518', '#fff', '#fff', '#fff', '#fff']
 
 export const SPIN_MS = 5200
 
@@ -49,10 +50,11 @@ export function Wheel({ slices, rotation, spinning, spinMs = SPIN_MS, winnerInde
   const count = slices.length
   const arcs = layoutArcs(slices.map((s) => s.weight))
   const R = 100
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '')
+  const id = (name: string) => `${name}-${uid}`
 
   return (
     <div className="wheel">
-      <div className="wheel-pointer" aria-hidden />
       <div
         className="wheel-disc"
         style={{
@@ -61,11 +63,10 @@ export function Wheel({ slices, rotation, spinning, spinMs = SPIN_MS, winnerInde
         }}
       >
         <svg viewBox="-104 -104 208 208" role="img" aria-label="转盘">
-          <circle r={104} fill="var(--ink)" />
           {count === 0 && (
             <>
               <circle r={R} fill="var(--wheel-empty)" />
-              <text y={-48} textAnchor="middle" dominantBaseline="central" fontSize={11} fill="var(--muted)">
+              <text y={-52} textAnchor="middle" dominantBaseline="central" fontSize={10} fill="var(--muted)">
                 {emptyText}
               </text>
             </>
@@ -75,7 +76,7 @@ export function Wheel({ slices, rotation, spinning, spinMs = SPIN_MS, winnerInde
               <circle r={R} fill={slices[0].color ?? COLORS[0]} />
               {slices[0].label && (
                 <text
-                  y={-R * 0.55}
+                  y={-R * 0.6}
                   textAnchor="middle"
                   dominantBaseline="central"
                   fontSize={14}
@@ -97,20 +98,19 @@ export function Wheel({ slices, rotation, spinning, spinMs = SPIN_MS, winnerInde
               const mid = start + seg / 2
               // 左半边的文字翻转 180°，保证名字不会倒着读
               const flip = mid > 180
-              const fontSize = Math.max(4.2, Math.min(11, ((2 * Math.PI * 62 * seg) / 360) * 0.55))
+              const fontSize = Math.max(4.2, Math.min(10.5, ((2 * Math.PI * 62 * seg) / 360) * 0.55))
               return (
                 <g key={i} className={winnerIndex === i ? 'wheel-seg winner' : 'wheel-seg'}>
                   <path
                     d={`M0 0 L${x0} ${y0} A${R} ${R} 0 ${seg > 180 ? 1 : 0} 1 ${x1} ${y1} Z`}
                     fill={slice.color ?? fallback.color}
-                    stroke="#fff"
-                    strokeWidth={count > 30 ? 0.4 : 0.9}
-                    strokeLinejoin="round"
+                    stroke="rgba(255,255,255,0.55)"
+                    strokeWidth={count > 30 ? 0.3 : 0.6}
                   />
                   {slice.label && (
                     <text
                       transform={`rotate(${flip ? mid + 90 : mid - 90})`}
-                      x={flip ? -R * 0.9 : R * 0.9}
+                      x={flip ? -R * 0.88 : R * 0.88}
                       textAnchor={flip ? 'start' : 'end'}
                       dominantBaseline="central"
                       fontSize={fontSize}
@@ -123,10 +123,53 @@ export function Wheel({ slices, rotation, spinning, spinMs = SPIN_MS, winnerInde
                 </g>
               )
             })}
-          <circle r={14} fill="#fff" stroke="var(--ink)" strokeWidth={3} />
-          <circle r={4.5} fill="var(--ink)" />
         </svg>
       </div>
+
+      {/* 不随转盘转动的金属部分：高光、镀铬外圈、中心 logo */}
+      <svg className="wheel-overlay" viewBox="-104 -104 208 208" aria-hidden>
+        <defs>
+          <radialGradient id={id('sheen')} cx="0.32" cy="0.2" r="0.75">
+            <stop offset="0" stopColor="#fff" stopOpacity="0.32" />
+            <stop offset="0.45" stopColor="#fff" stopOpacity="0.06" />
+            <stop offset="1" stopColor="#fff" stopOpacity="0" />
+          </radialGradient>
+          <radialGradient id={id('vignette')} r="0.5" cx="0.5" cy="0.5">
+            <stop offset="0.82" stopColor="#000" stopOpacity="0" />
+            <stop offset="1" stopColor="#000" stopOpacity="0.22" />
+          </radialGradient>
+          <linearGradient id={id('chrome')} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#fbfcfd" />
+            <stop offset="0.22" stopColor="#a8acb3" />
+            <stop offset="0.45" stopColor="#f1f2f4" />
+            <stop offset="0.62" stopColor="#7c8188" />
+            <stop offset="0.8" stopColor="#e4e6e9" />
+            <stop offset="1" stopColor="#8e939a" />
+          </linearGradient>
+          <clipPath id={id('hub')}>
+            <circle r={21.5} />
+          </clipPath>
+        </defs>
+        <circle r={R} fill={`url(#${id('sheen')})`} />
+        <circle r={R} fill={`url(#${id('vignette')})`} />
+        <circle r={101.8} fill="none" stroke={`url(#${id('chrome')})`} strokeWidth={4.6} />
+        <circle r={104.1} fill="none" stroke="#2b2d31" strokeWidth={0.7} />
+        <circle r={99.4} fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth={0.5} />
+        <circle r={24.5} fill={`url(#${id('chrome')})`} stroke="#2b2d31" strokeWidth={0.7} />
+        <image href="/logo.jpg" x={-21.5} y={-21.5} width={43} height={43} clipPath={`url(#${id('hub')})`} />
+      </svg>
+
+      <svg className="wheel-pointer" viewBox="0 0 40 50" aria-hidden>
+        <defs>
+          <linearGradient id={id('ptr')} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#6b7077" />
+            <stop offset="0.42" stopColor="#f6f7f9" />
+            <stop offset="0.58" stopColor="#a7abb2" />
+            <stop offset="1" stopColor="#40434a" />
+          </linearGradient>
+        </defs>
+        <path d="M3 2 H37 L20 47 Z" fill={`url(#${id('ptr')})`} stroke="#2b2d31" strokeWidth="1.6" strokeLinejoin="round" />
+      </svg>
     </div>
   )
 }
