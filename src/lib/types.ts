@@ -32,11 +32,13 @@ export type StudentState =
       valid: true
       student_id: string
       student_name: string
+      credits: number
       lesson_active: boolean
       question: null | {
         id: string
         status: 'open' | 'spun'
         weight: number
+        min_weight: number
         is_candidate: boolean
         total_weight: number
         candidate_count: number

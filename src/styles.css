@@ -935,13 +935,23 @@ textarea {
   height: 14px;
   border-radius: 99px;
   border: 2px solid var(--ink);
-  background: linear-gradient(to right, var(--red) 0 var(--fill), var(--paper-2) var(--fill) 100%);
+  background: linear-gradient(
+    to right,
+    #b9b09c 0 var(--lock, 0%),
+    var(--red) var(--lock, 0%) var(--fill),
+    var(--paper-2) var(--fill) 100%
+  );
 }
 .slider input[type='range']::-moz-range-track {
   height: 10px;
   border-radius: 99px;
   border: 2px solid var(--ink);
-  background: linear-gradient(to right, var(--red) 0 var(--fill), var(--paper-2) var(--fill) 100%);
+  background: linear-gradient(
+    to right,
+    #b9b09c 0 var(--lock, 0%),
+    var(--red) var(--lock, 0%) var(--fill),
+    var(--paper-2) var(--fill) 100%
+  );
 }
 .slider input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -1064,4 +1074,49 @@ textarea {
     height: auto;
     overflow: visible;
   }
+}
+
+.slider input[type='range']:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* credits */
+.student-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.student-head p {
+  margin: 0;
+}
+.credits {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 99px;
+  background: var(--yellow);
+  border: 1.5px solid var(--ink);
+  font-weight: 700;
+}
+.credits-label {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+.credits-num {
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+.credits-pending {
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+.credits-pending.up {
+  color: #23584a;
+}
+.credits-pending.down {
+  color: var(--red-dark);
 }

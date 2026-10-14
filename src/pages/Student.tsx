@@ -228,7 +228,8 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
 
   // 拖动滑块时立即更新显示，停下 200ms 后再发给服务器
   function changeWeight(w: number) {
-    if (!q) return
+    if (!q || !q.is_candidate) return
+    w = Math.max(q.min_weight, w)  // credits 不够时不能再往下拉
     const questionId = q.id
     setWeight(w)
     window.clearTimeout(sendTimer.current)
@@ -261,9 +262,15 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
   return (
     <div className="student">
       <div className="student-card">
-        <p className="muted small">
-          我是 <b>{state.student_name}</b>
-        </p>
+        <div className="student-head">
+          <p className="muted small">
+            我是 <b>{state.student_name}</b>
+          </p>
+          <CreditsBadge
+            credits={state.credits}
+            pending={q?.status === 'open' && q.is_candidate ? myWeight - NORMAL_WEIGHT : 0}
+          />
+        </div>
 
         {!state.lesson_active || !q ? (
           <div className="waiting">
@@ -294,8 +301,9 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
                 step={1}
                 value={myWeight}
                 onChange={(e) => changeWeight(Number(e.target.value))}
+                disabled={!q.is_candidate}
                 aria-label="我的权重"
-                style={{ '--fill': `${pct(myWeight)}%` } as CSSProperties}
+                style={{ '--fill': `${pct(myWeight)}%`, '--lock': `${pct(q.min_weight)}%` } as CSSProperties}
               />
               <div className="slider-labels" aria-hidden>
                 <span>不想答</span>
@@ -305,7 +313,13 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
                 <span>很想答</span>
               </div>
             </div>
-            <p className="hint">{hintFor(myWeight)}</p>
+            <p className="hint">
+              {q.is_candidate && myWeight <= q.min_weight && q.min_weight > MIN_WEIGHT
+                ? state.credits === 0
+                  ? 'credits 用完了，这题不能减。加权可以赚 credits。'
+                  : `credits 不够，最多只能减到 ${q.min_weight}。`
+                : hintFor(myWeight)}
+            </p>
           </div>
         ) : (
           <div className="adjuster">
@@ -331,8 +345,22 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
         {error && <p className="error">{error}</p>}
       </div>
       <p className="privacy-note">
-        转盘上只显示你自己的部分，看不到别人的名字。老师看不到你每道题的选择，只能看到下课后累计加了多少、减了多少。
+        减权要花 credits，加权可以赚 credits，转盘之后才结算。转盘上只显示你自己的部分，看不到别人的名字。老师看不到你每道题的选择，只能看到下课后累计加了多少、减了多少。
       </p>
+    </div>
+  )
+}
+
+function CreditsBadge({ credits, pending }: { credits: number; pending: number }) {
+  return (
+    <div className="credits" title="减权花 credits，加权赚 credits">
+      <span className="credits-label">credits</span>
+      <span className="credits-num">{credits}</span>
+      {pending !== 0 && (
+        <span className={pending > 0 ? 'credits-pending up' : 'credits-pending down'}>
+          {pending > 0 ? `+${pending}` : pending} → {credits + pending}
+        </span>
+      )}
     </div>
   )
 }
