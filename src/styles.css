@@ -593,13 +593,18 @@ textarea {
   border: 1px solid var(--line-strong);
   color: var(--ink);
 }
-.chip.on::before {
+/* 点一直占位，切换在场只改颜色，不改宽度，名字不会重新换行 */
+.chip::before {
   content: '';
   display: inline-block;
   width: 6px;
   height: 6px;
   margin: 0 0.4rem 0.1rem 0;
   border-radius: 50%;
+  background: var(--line-strong);
+  transition: background 0.15s;
+}
+.chip.on::before {
   background: var(--c3);
 }
 .chip.picked::before {
