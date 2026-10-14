@@ -81,48 +81,37 @@ function PickName({ onClaimed }: { onClaimed: (token: string) => void }) {
     }
   }
 
-  if (roster === undefined) return <div className="student"><p className="muted">{error || '加载中…'}</p></div>
+  if (roster === undefined) return <div className="student">{error && <p className="error">{error}</p>}</div>
 
   return (
     <div className="student">
-      <div className="student-card">
+      <div className="pick">
         <h1>你是谁？</h1>
-        <p className="muted small">选择自己的名字。选好后这台手机会记住你。</p>
         {error && <p className="error">{error}</p>}
-        <div className="name-grid">
-          {roster.length === 0 && <p className="muted">老师还没有添加名单。</p>}
-          {roster.map((s) => (
-            <button
-              key={s.id}
-              className="name-btn"
-              disabled={s.claimed || busy}
-              onClick={() => setChosen({ id: s.id, name: s.name })}
-            >
-              {s.name}
-              {s.claimed && <span className="small">已加入</span>}
-            </button>
-          ))}
-        </div>
-        <p className="muted small">名字显示「已加入」但不是你本人？请老师在「名单」里解绑。</p>
+        {roster.length === 0 ? (
+          <p className="muted">老师还没添加名单</p>
+        ) : (
+          <div className="name-grid">
+            {roster.map((s) => (
+              <button
+                key={s.id}
+                className={chosen?.id === s.id ? 'name-btn selected' : 'name-btn'}
+                disabled={s.claimed || busy}
+                onClick={() => setChosen({ id: s.id, name: s.name })}
+              >
+                {s.name}
+                {s.claimed && <span className="taken">已选</span>}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {chosen && (
-        <div className="overlay" onClick={() => setChosen(null)}>
-          <div className="result-card" onClick={(e) => e.stopPropagation()}>
-            <p className="muted">确认你是</p>
-            <p className="winner-name small-name">{chosen.name}</p>
-            <p className="muted small">选错了的话需要找老师解绑。</p>
-            <div className="row center">
-              <button className="btn" onClick={() => setChosen(null)}>
-                取消
-              </button>
-              <button className="btn primary" onClick={confirm} disabled={busy}>
-                是我
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <div className={chosen ? 'pick-confirm show' : 'pick-confirm'}>
+        <button className="btn accent lg block" onClick={confirm} disabled={!chosen || busy}>
+          我是 {chosen?.name ?? '…'}
+        </button>
+      </div>
     </div>
   )
 }
@@ -130,8 +119,8 @@ function PickName({ onClaimed }: { onClaimed: (token: string) => void }) {
 const MIN_WEIGHT = 1
 const MAX_WEIGHT = 30
 const NORMAL_WEIGHT = 10
-const ME_COLOR = '#d9483b'
-const OTHER_COLORS = ['#ddd5c4', '#cbc2ae']
+const ME_COLOR = '#f25f4c'
+const OTHER_COLORS = ['#e6e5ee', '#d6d4e2']
 
 function StudentView({ token, onInvalid }: { token: string; onInvalid: () => void }) {
   const [state, setState] = useState<StudentState | null>(null)
@@ -245,120 +234,110 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
     }, 200)
   }
 
-  if (!state?.valid) return <div className="student"><p className="muted">{error || '加载中…'}</p></div>
+  if (!state?.valid) return <div className="student">{error && <p className="error">{error}</p>}</div>
 
   const revealed = Date.now() >= revealAt
-  const wheel = (
-    <Wheel
-      slices={slices}
-      rotation={rotation}
-      spinning={spinning}
-      spinMs={spinMs}
-      winnerIndex={q?.status === 'spun' && revealed ? landedIndex : null}
-      emptyText="转盘上暂时没有人"
-    />
-  )
+  const blocked = q?.status === 'open' && q.is_candidate && myWeight <= q.min_weight && q.min_weight > MIN_WEIGHT
 
   return (
     <div className="student">
-      <div className="student-card">
-        <div className="student-head">
-          <p className="muted small">
-            我是 <b>{state.student_name}</b>
-          </p>
-          <CreditsBadge
-            credits={state.credits}
-            pending={q?.status === 'open' && q.is_candidate ? myWeight - NORMAL_WEIGHT : 0}
-          />
+      <header className="student-head">
+        <span className="me">{state.student_name}</span>
+        <CreditsBadge
+          credits={state.credits}
+          pending={q?.status === 'open' && q.is_candidate ? myWeight - NORMAL_WEIGHT : 0}
+        />
+      </header>
+
+      {!state.lesson_active || !q ? (
+        <div className="waiting">
+          <div className="pulse" aria-hidden />
+          <p>等老师出题</p>
         </div>
+      ) : (
+        <main className="play">
+          <Wheel
+            slices={slices}
+            rotation={rotation}
+            spinning={spinning}
+            spinMs={spinMs}
+            winnerIndex={q.status === 'spun' && revealed ? landedIndex : null}
+            emptyText=""
+          />
 
-        {!state.lesson_active || !q ? (
-          <div className="waiting">
-            <div className="pulse" />
-            <h1>等待老师出题…</h1>
-            <p className="muted small">老师开始新题后，这里会自动出现。</p>
-          </div>
-        ) : q.status === 'open' ? (
-          <div className="adjuster">
-            <h1>这道题你想回答吗？</h1>
-            {wheel}
-            {q.is_candidate ? (
-              <p className="chance">
-                被抽中的机会约 <b>{formatChance(chance)}</b>
-              </p>
-            ) : (
-              <p className="muted small">你这题不在转盘上（老师标记你不在场，或本节课你已经被抽过）。</p>
-            )}
-            <div className="weight">
-              <span className="muted small">我的权重</span>
-              <span className="weight-num">{myWeight}</span>
-            </div>
-            <div className="slider">
-              <input
-                type="range"
-                min={MIN_WEIGHT}
-                max={MAX_WEIGHT}
-                step={1}
-                value={myWeight}
-                onChange={(e) => changeWeight(Number(e.target.value))}
-                disabled={!q.is_candidate}
-                aria-label="我的权重"
-                style={{ '--fill': `${pct(myWeight)}%`, '--lock': `${pct(q.min_weight)}%` } as CSSProperties}
-              />
-              <div className="slider-labels" aria-hidden>
-                <span>不想答</span>
-                <button className="slider-normal" style={{ left: `${pct(NORMAL_WEIGHT)}%` }} onClick={() => changeWeight(NORMAL_WEIGHT)}>
-                  平时
-                </button>
-                <span>很想答</span>
+          {q.status === 'open' ? (
+            <>
+              <div className="chance" aria-live="polite">
+                {q.is_candidate ? (
+                  <>
+                    <span className="chance-num">{formatChance(chance)}</span>
+                    <span className="chance-label">被抽中概率</span>
+                  </>
+                ) : (
+                  <span className="chance-label">这题你不在转盘上</span>
+                )}
               </div>
-            </div>
-            <p className="hint">
-              {q.is_candidate && myWeight <= q.min_weight && q.min_weight > MIN_WEIGHT
-                ? state.credits === 0
-                  ? 'credits 用完了，这题不能减。加权可以赚 credits。'
-                  : `credits 不够，最多只能减到 ${q.min_weight}。`
-                : hintFor(myWeight)}
-            </p>
-          </div>
-        ) : (
-          <div className="adjuster">
-            <h1>{revealed ? '结果' : '转盘转动中…'}</h1>
-            {wheel}
-            {revealed &&
-              (q.is_me ? (
-                <div className="result me">
-                  <p>被抽中的是</p>
-                  <p className="winner-name">你！</p>
-                  <p>请准备回答 🙋</p>
-                </div>
-              ) : (
-                <div className="result">
-                  <p className="muted">被抽中的是</p>
-                  <p className="winner-name">{q.winner_name}</p>
-                  <p className="muted small">等待下一题…</p>
-                </div>
-              ))}
-          </div>
-        )}
 
-        {error && <p className="error">{error}</p>}
-      </div>
-      <p className="privacy-note">
-        减权要花 credits，加权可以赚 credits，转盘之后才结算。转盘上只显示你自己的部分，看不到别人的名字。老师看不到你每道题的选择，只能看到下课后累计加了多少、减了多少。
-      </p>
+              <div className="slider">
+                <input
+                  type="range"
+                  min={MIN_WEIGHT}
+                  max={MAX_WEIGHT}
+                  step={1}
+                  value={myWeight}
+                  onChange={(e) => changeWeight(Number(e.target.value))}
+                  disabled={!q.is_candidate}
+                  aria-label="我的权重"
+                  aria-valuetext={`权重 ${myWeight}`}
+                  style={{ '--fill': `${pct(myWeight)}%`, '--lock': `${pct(q.min_weight)}%` } as CSSProperties}
+                />
+                <div className="slider-labels">
+                  <span>不想答</span>
+                  <button
+                    className="slider-normal"
+                    style={{ left: `${pct(NORMAL_WEIGHT)}%` }}
+                    onClick={() => changeWeight(NORMAL_WEIGHT)}
+                    disabled={!q.is_candidate}
+                  >
+                    平时
+                  </button>
+                  <span>想答</span>
+                </div>
+              </div>
+              <p className={blocked ? 'slider-note warn-text' : 'slider-note'}>
+                {blocked ? (state.credits === 0 ? 'credits 用完了，只能加' : 'credits 不够，不能再减') : `权重 ${myWeight}`}
+              </p>
+            </>
+          ) : !revealed ? (
+            <p className="spin-status">转盘中…</p>
+          ) : q.is_me ? (
+            <div className="result me">
+              <span className="result-label">被抽中的是</span>
+              <span className="result-name">你！</span>
+            </div>
+          ) : (
+            <div className="result">
+              <span className="result-label">被抽中的是</span>
+              <span className="result-name">{q.winner_name}</span>
+            </div>
+          )}
+        </main>
+      )}
+
+      {error && <p className="error">{error}</p>}
     </div>
   )
 }
 
 function CreditsBadge({ credits, pending }: { credits: number; pending: number }) {
   return (
-    <div className="credits" title="减权花 credits，加权赚 credits">
-      <span className="credits-label">credits</span>
+    <div className="credits" title="减权花 credits，加权赚 credits，转盘后结算">
+      <span className="credits-coin" aria-hidden />
       <span className="credits-num">{credits}</span>
+      <span className="credits-label">credits</span>
       {pending !== 0 && (
         <span className={pending > 0 ? 'credits-pending up' : 'credits-pending down'}>
-          {pending > 0 ? `+${pending}` : pending} → {credits + pending}
+          {pending > 0 ? `+${pending}` : pending}
         </span>
       )}
     </div>
@@ -370,13 +349,4 @@ const pct = (w: number) => ((w - MIN_WEIGHT) / (MAX_WEIGHT - MIN_WEIGHT)) * 100
 function formatChance(p: number) {
   const pct = p * 100
   return pct >= 10 ? `${Math.round(pct)}%` : `${pct.toFixed(1)}%`
-}
-
-function hintFor(w: number) {
-  if (w <= MIN_WEIGHT) return '已经是最低了，被抽中的机会很小。'
-  if (w < 10) return '被抽中的机会比平时小。'
-  if (w === 10) return '和平时一样的机会。'
-  if (w < 20) return '被抽中的机会比平时大。'
-  if (w < MAX_WEIGHT) return '被抽中的机会大很多！'
-  return '已经是最高了！'
 }

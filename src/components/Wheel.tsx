@@ -1,7 +1,8 @@
 import { layoutArcs, polar } from '../lib/wheel'
 
-const COLORS = ['#d9483b', '#e9b949', '#3f8f7a', '#3a6ea5', '#c4677d', '#7a8b3a']
-const TEXT_ON = ['#fff', '#2b2a33', '#fff', '#fff', '#fff', '#fff']
+// 和 styles.css 里的 --c1…--c6 一致
+const COLORS = ['#f25f4c', '#ffc23c', '#2bb58c', '#3d8bfd', '#8f6bef', '#ff8a3d']
+const TEXT_ON = ['#fff', '#1e1b2e', '#1e1b2e', '#fff', '#fff', '#1e1b2e']
 
 export const SPIN_MS = 5200
 
@@ -60,10 +61,10 @@ export function Wheel({ slices, rotation, spinning, spinMs = SPIN_MS, winnerInde
         }}
       >
         <svg viewBox="-104 -104 208 208" role="img" aria-label="转盘">
-          <circle r={103} fill="var(--ink)" />
+          <circle r={104} fill="var(--ink)" />
           {count === 0 && (
             <>
-              <circle r={R} fill="var(--paper-2)" />
+              <circle r={R} fill="var(--wheel-empty)" />
               <text y={-48} textAnchor="middle" dominantBaseline="central" fontSize={11} fill="var(--muted)">
                 {emptyText}
               </text>
@@ -102,8 +103,9 @@ export function Wheel({ slices, rotation, spinning, spinMs = SPIN_MS, winnerInde
                   <path
                     d={`M0 0 L${x0} ${y0} A${R} ${R} 0 ${seg > 180 ? 1 : 0} 1 ${x1} ${y1} Z`}
                     fill={slice.color ?? fallback.color}
-                    stroke="var(--ink)"
-                    strokeWidth={count > 30 ? 0.3 : 0.6}
+                    stroke="#fff"
+                    strokeWidth={count > 30 ? 0.4 : 0.9}
+                    strokeLinejoin="round"
                   />
                   {slice.label && (
                     <text
@@ -121,8 +123,8 @@ export function Wheel({ slices, rotation, spinning, spinMs = SPIN_MS, winnerInde
                 </g>
               )
             })}
-          <circle r={13} fill="var(--ink)" />
-          <circle r={5} fill="var(--paper)" />
+          <circle r={14} fill="#fff" stroke="var(--ink)" strokeWidth={3} />
+          <circle r={4.5} fill="var(--ink)" />
         </svg>
       </div>
     </div>

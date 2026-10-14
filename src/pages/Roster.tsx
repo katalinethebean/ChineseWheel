@@ -63,22 +63,22 @@ export function Roster() {
   }
 
   async function remove(s: StudentRow) {
-    if (!window.confirm(`确定删除「${s.name}」吗？这个学生的统计数据也会一起删除。`)) return
+    if (!window.confirm(`删除「${s.name}」？统计也会一起删除。`)) return
     await run(() => supabase.from('students').delete().eq('id', s.id))
   }
 
   async function release(s: StudentRow) {
-    if (!window.confirm(`解绑「${s.name}」的设备？解绑后学生需要重新选择名字。`)) return
+    if (!window.confirm(`让「${s.name}」重新选名字？`)) return
     await run(() => rpc('release_student', { p_student_id: s.id }), `已解绑 ${s.name}`)
   }
 
   async function releaseAll() {
-    if (!window.confirm('让所有学生重新选择名字吗？已经加入的学生会回到选名字的页面。')) return
-    await run(() => rpc('release_all'), '已全部解绑，学生需要重新选择名字')
+    if (!window.confirm('让所有学生重新选名字？')) return
+    await run(() => rpc('release_all'), '已全部解绑')
   }
 
   async function resetStats() {
-    if (!window.confirm('确定把所有学生的统计清零吗？此操作无法撤销。')) return
+    if (!window.confirm('把所有人的统计和 credits 清零？无法撤销。')) return
     await run(() => rpc('reset_stats'), '统计已清零')
   }
 
@@ -86,74 +86,61 @@ export function Roster() {
 
   return (
     <>
-      <div className="title-row">
-        <h1>
-          名单 {students && <span className="muted count">{students.length} 人</span>}
-        </h1>
-      </div>
+      <header className="page-head">
+        <h1>名单</h1>
+        {students && <span className="count">{students.length} 人</span>}
+      </header>
 
       {error && <p className="error">{error}</p>}
       {notice && <p className="notice">{notice}</p>}
 
-      <section className="card">
-        <h2>添加学生</h2>
-        <p className="muted small">每行一个名字，也可以用逗号或顿号隔开。可以直接从 Excel 复制一列粘贴进来。</p>
-        <textarea rows={5} value={paste} onChange={(e) => setPaste(e.target.value)} placeholder={'张三\n李四\n王五'} />
+      <div className="add-names">
+        <textarea
+          rows={3}
+          value={paste}
+          onChange={(e) => setPaste(e.target.value)}
+          placeholder="粘贴名字，每行一个"
+          aria-label="添加学生"
+        />
         <button className="btn primary" onClick={addStudents} disabled={pending === 0}>
           添加{pending > 0 ? ` ${pending} 人` : ''}
         </button>
-      </section>
+      </div>
 
-      {students === null ? (
-        !error && <p className="muted">加载中…</p>
-      ) : students.length > 0 ? (
-        <section className="card">
-          <h2>全部学生</h2>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>名字</th>
-                <th>设备</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {students.map((s) => (
-                <tr key={s.id}>
-                  <td>{s.name}</td>
-                  <td>{s.claimed ? <span className="tag ok">已绑定</span> : <span className="tag">未绑定</span>}</td>
-                  <td className="actions">
-                    {s.claimed && (
-                      <button className="btn-link" onClick={() => release(s)}>
-                        解绑
-                      </button>
-                    )}
-                    <button className="btn-link" onClick={() => rename(s)}>
-                      改名
-                    </button>
-                    <button className="btn-link danger" onClick={() => remove(s)}>
-                      删除
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      ) : null}
+      {students && students.length > 0 && (
+        <ul className="roster">
+          {students.map((s) => (
+            <li key={s.id}>
+              <span className="roster-name">
+                {s.name}
+                {s.claimed && <span className="joined-dot" title="已在手机上选了名字" />}
+              </span>
+              <span className="roster-actions">
+                {s.claimed && (
+                  <button className="btn-link" onClick={() => release(s)}>
+                    解绑
+                  </button>
+                )}
+                <button className="btn-link" onClick={() => rename(s)}>
+                  改名
+                </button>
+                <button className="btn-link danger" onClick={() => remove(s)}>
+                  删除
+                </button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
 
-      <section className="card danger-zone">
-        <h2>其他操作</h2>
-        <p className="muted small">每次下课结算后，所有学生会自动解绑，下节课重新选名字。</p>
-        <div className="row">
-          <button className="btn" onClick={releaseAll}>
-            全部解绑
-          </button>
-          <button className="btn danger" onClick={resetStats}>
-            统计清零
-          </button>
-        </div>
-      </section>
+      <footer className="page-foot">
+        <button className="btn ghost" onClick={releaseAll}>
+          全部解绑
+        </button>
+        <button className="btn ghost danger" onClick={resetStats}>
+          统计清零
+        </button>
+      </footer>
     </>
   )
 }

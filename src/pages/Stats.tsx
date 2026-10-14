@@ -58,56 +58,53 @@ export function Stats() {
     )
   }
 
-  if (!students) return error ? <p className="error">{error}</p> : <p className="muted">加载中…</p>
+  if (!students) return error ? <p className="error">{error}</p> : null
 
   return (
     <>
-      <h1>统计</h1>
-      <p className="muted">
-        {lastSettled
-          ? `数据更新到 ${new Date(lastSettled).toLocaleString('zh-CN')} 下课结算时。`
-          : '还没有结算过的课。每节课点「下课结算」后，数据才会出现在这里。'}
-        只显示累计结果，看不到每道题的选择。
-      </p>
+      <header className="page-head">
+        <h1>统计</h1>
+        {lastSettled && (
+          <span className="count">更新于 {new Date(lastSettled).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+        )}
+      </header>
 
-      {students.length === 0 ? (
-        <p className="muted">还没有学生，先去「名单」添加。</p>
+      {students.length === 0 || !lastSettled ? (
+        <p className="empty">{students.length === 0 ? '还没有学生' : '下课结算后显示'}</p>
       ) : (
-        <section className="card">
-          <table className="table stats">
-            <thead>
-              <tr>
-                {header('seq', '名字')}
-                {header('plus', '累计加')}
-                {header('minus', '累计减')}
-                {header('net', '净积分')}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((s) => {
-                const net = s.total_plus + s.total_minus
-                return (
-                  <tr key={s.id}>
-                    <td>{s.name}</td>
-                    <td>
-                      <div className="bar-cell">
-                        <span className="bar plus" style={{ width: `${(s.total_plus / maxAbs) * 100}%` }} />
-                        <span className="num">+{s.total_plus}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="bar-cell">
-                        <span className="bar minus" style={{ width: `${(-s.total_minus / maxAbs) * 100}%` }} />
-                        <span className="num">{s.total_minus}</span>
-                      </div>
-                    </td>
-                    <td className={net < 0 ? 'net neg' : net > 0 ? 'net pos' : 'net'}>{net > 0 ? `+${net}` : net}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </section>
+        <table className="stats">
+          <thead>
+            <tr>
+              {header('seq', '名字')}
+              {header('plus', '加')}
+              {header('minus', '减')}
+              {header('net', '净')}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((s) => {
+              const net = s.total_plus + s.total_minus
+              return (
+                <tr key={s.id}>
+                  <td>{s.name}</td>
+                  <td>
+                    <div className="bar-cell">
+                      <span className="bar plus" style={{ width: `${(s.total_plus / maxAbs) * 100}%` }} />
+                      <span className="num">{s.total_plus ? `+${s.total_plus}` : '0'}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="bar-cell">
+                      <span className="bar minus" style={{ width: `${(-s.total_minus / maxAbs) * 100}%` }} />
+                      <span className="num">{s.total_minus}</span>
+                    </div>
+                  </td>
+                  <td className={net < 0 ? 'net neg' : net > 0 ? 'net pos' : 'net'}>{net > 0 ? `+${net}` : net}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       )}
     </>
   )

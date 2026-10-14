@@ -1,5 +1,5 @@
 import { QRCodeSVG } from 'qrcode.react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { SPIN_MS, Wheel, equalSlices } from '../components/Wheel'
 import { usePolling } from '../lib/hooks'
@@ -120,7 +120,7 @@ export function Lesson() {
 
   const settle = () =>
     act(async () => {
-      if (!window.confirm('下课结算后，本节课的结果会计入统计，单题记录会被永久删除。确定结算吗？')) return
+      if (!window.confirm('下课结算？本节课的结果会计入统计，学生下节课需要重新选名字。')) return
       await rpc('settle_lesson', { p_lesson_id: lesson!.id })
       closeResult()
       setSettledMsg(true)
@@ -166,49 +166,40 @@ export function Lesson() {
     return () => window.removeEventListener('keydown', onKey)
   })
 
-  if (lesson === undefined) return error ? <p className="error">{error}</p> : <p className="muted">加载中…</p>
+  if (lesson === undefined) return error ? <p className="error">{error}</p> : null
 
   const joinUrl = `${window.location.origin}/student`
+  const joinLabel = joinUrl.replace(/^https?:\/\//, '')
 
   if (!lesson) {
     return (
-      <>
-        <div className="card start-card">
-          <h1>准备上课</h1>
-          <p className="muted">开始上课后，学生打开学生页面就会自动出现在在场名单里。</p>
-          {settledMsg && (
-            <p className="notice">
-              已下课结算。<Link to="/teacher/stats">查看统计 →</Link>
-            </p>
-          )}
-          {error && <p className="error">{error}</p>}
-          <button className="btn primary big" onClick={startLesson} disabled={busy}>
-            开始上课
-          </button>
-        </div>
-      </>
+      <div className="start">
+        {settledMsg && (
+          <p className="notice">
+            已结算 · <Link to="/teacher/stats">查看统计</Link>
+          </p>
+        )}
+        {error && <p className="error">{error}</p>}
+        <button className="btn accent xl" onClick={startLesson} disabled={busy}>
+          开始上课
+        </button>
+      </div>
     )
   }
 
-  const winnerIndex =
-    phase === 'result' && winner ? wheelPeople.findIndex((p) => p.id === winner.id) : null
+  const winnerIndex = phase === 'result' && winner ? wheelPeople.findIndex((p) => p.id === winner.id) : null
+  const startedAt = new Date(lesson.started_at)
 
   return (
     <div className="lesson">
-      <div className="lesson-head">
-        <p className="muted small">上课中 · {new Date(lesson.started_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })} 开始</p>
-        <button className="btn" onClick={settle} disabled={busy || phase === 'spinning'}>
-          下课结算
-        </button>
-      </div>
-
-      {!isToday(lesson.started_at) && (
-        <p className="warn">
-          这节课是 {new Date(lesson.started_at).toLocaleDateString('zh-CN')} 开始的，还没有结算。
-          如果是新的一节课，请先点右上角「下课结算」，再重新开始上课。
-        </p>
+      {(!isToday(lesson.started_at) || error) && (
+        <div className="lesson-alerts">
+          {!isToday(lesson.started_at) && (
+            <p className="warn">这节课从 {startedAt.toLocaleDateString('zh-CN')} 开始，还没结算。</p>
+          )}
+          {error && <p className="error">{error}</p>}
+        </div>
       )}
-      {error && <p className="error">{error}</p>}
 
       <div className="lesson-grid">
         <section className="stage">
@@ -221,67 +212,41 @@ export function Lesson() {
             />
           </div>
 
-          <div className="stage-status">
-            {phase === 'spinning' ? (
-              <p className="status-big">转盘转动中…</p>
-            ) : questionOpen ? (
-              <p className="status-big">
-                学生正在调整 · 已调整 <b>{question!.adjusted_count}</b> / {presentCount} 人
-              </p>
-            ) : (
-              <p className="status-big muted">点「开始新题」后，学生就能在手机上调整权重</p>
-            )}
-          </div>
-
-          <div className="stage-actions">
+          <div className="stage-bar">
             {questionOpen ? (
-              <button
-                className="btn spin-btn"
-                onClick={spin}
-                disabled={busy || phase === 'spinning' || candidates.length === 0}
-              >
-                转！
-              </button>
+              <>
+                <span className="progress" aria-live="polite">
+                  <b>{question!.adjusted_count}</b>/{presentCount} 已调整
+                </span>
+                <button
+                  className="btn accent xl"
+                  onClick={spin}
+                  disabled={busy || phase === 'spinning' || candidates.length === 0}
+                >
+                  转！<kbd>空格</kbd>
+                </button>
+              </>
             ) : (
-              <button className="btn primary big" onClick={newQuestion} disabled={busy || phase === 'spinning'}>
-                开始新题
+              <button className="btn primary xl" onClick={newQuestion} disabled={busy || phase === 'spinning'}>
+                开始新题<kbd>回车</kbd>
               </button>
             )}
           </div>
-          <p className="muted small center">快捷键：回车 开始新题 · 空格 转</p>
         </section>
 
         <aside className="side">
-          <div className="card join-card">
-            <button className="qr" onClick={() => setBigQr(true)} title="放大二维码">
-              <QRCodeSVG value={joinUrl} size={132} marginSize={1} />
-            </button>
-            <div>
-              <p className="muted small">学生扫码加入，或打开</p>
-              <p className="join-url">{joinUrl.replace(/^https?:\/\//, '')}</p>
-              <button className="btn-link" onClick={() => setBigQr(true)}>
-                放大二维码
-              </button>
-            </div>
-          </div>
+          <button className="join" onClick={() => setBigQr(true)} title="放大">
+            <QRCodeSVG value={joinUrl} size={112} marginSize={0} />
+            <span className="join-url">{joinLabel}</span>
+          </button>
 
-          <div className="card">
-            <label className="check">
-              <input
-                type="checkbox"
-                checked={excludePicked}
-                onChange={(e) => setExcludePicked(e.target.checked)}
-                disabled={busy}
-              />
-              本节课已抽过的人不再参与
-            </label>
-          </div>
-
-          <div className="card">
-            <h2>
-              在场 {presentCount} / {st?.students.length ?? 0}
-            </h2>
-            <p className="muted small">扫码加入后自动在场。点名字可以手动切换（比如没带手机的同学）。</p>
+          <section className="side-block">
+            <header className="side-head">
+              <h2>在场</h2>
+              <span className="count">
+                {presentCount}/{st?.students.length ?? 0}
+              </span>
+            </header>
             <div className="chips">
               {st?.students.map((s) => (
                 <button
@@ -289,30 +254,46 @@ export function Lesson() {
                   className={['chip', s.present ? 'on' : '', s.picked ? 'picked' : ''].join(' ')}
                   onClick={() => togglePresent(s)}
                   disabled={busy}
-                  title={s.picked ? '本节课已被抽中过' : undefined}
+                  aria-pressed={s.present}
+                  title={s.picked ? '已抽过' : s.present ? '点击设为不在场' : '点击设为在场'}
                 >
                   {s.name}
-                  {s.picked && <span className="dot" aria-label="已抽中过" />}
                 </button>
               ))}
             </div>
-          </div>
+          </section>
+
+          <footer className="side-foot">
+            <label className="switch">
+              <input
+                type="checkbox"
+                checked={excludePicked}
+                onChange={(e) => setExcludePicked(e.target.checked)}
+                disabled={busy}
+              />
+              <span className="switch-track" aria-hidden />
+              抽过的不再抽
+            </label>
+            <div className="side-meta">
+              <span>
+                {startedAt.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })} 开始
+              </span>
+              <button className="btn ghost sm" onClick={settle} disabled={busy || phase === 'spinning'}>
+                下课结算
+              </button>
+            </div>
+          </footer>
         </aside>
       </div>
 
       {phase === 'result' && winner && (
         <div className="overlay" onClick={closeResult}>
-          <div className="result-card" onClick={(e) => e.stopPropagation()}>
-            <p className="muted">请回答</p>
+          <div className="winner" onClick={(e) => e.stopPropagation()}>
+            <Confetti />
             <p className="winner-name">{winner.name}</p>
-            <div className="row center">
-              <button className="btn" onClick={closeResult}>
-                关闭
-              </button>
-              <button className="btn primary" onClick={newQuestion}>
-                下一题
-              </button>
-            </div>
+            <button className="btn primary lg" onClick={newQuestion} autoFocus>
+              下一题
+            </button>
           </div>
         </div>
       )}
@@ -320,14 +301,33 @@ export function Lesson() {
       {bigQr && (
         <div className="overlay" onClick={() => setBigQr(false)}>
           <div className="qr-big" onClick={(e) => e.stopPropagation()}>
-            <QRCodeSVG value={joinUrl} size={420} marginSize={2} />
-            <p className="join-url big">{joinUrl.replace(/^https?:\/\//, '')}</p>
-            <button className="btn" onClick={() => setBigQr(false)}>
-              关闭
-            </button>
+            <QRCodeSVG value={joinUrl} size={400} marginSize={0} />
+            <p className="join-url big">{joinLabel}</p>
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+const CONFETTI_COLORS = ['var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)', 'var(--c5)', 'var(--c6)']
+
+/** 抽中时的一圈彩色纸屑（纯 CSS 动画，减少动效时不显示） */
+function Confetti() {
+  return (
+    <div className="confetti" aria-hidden>
+      {Array.from({ length: 18 }, (_, i) => (
+        <span
+          key={i}
+          style={
+            {
+              '--a': `${(i / 18) * 360}deg`,
+              '--d': `${140 + (i % 3) * 50}px`,
+              background: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+            } as CSSProperties
+          }
+        />
+      ))}
     </div>
   )
 }
