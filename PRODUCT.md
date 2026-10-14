@@ -15,12 +15,13 @@ A Chinese-language classroom name wheel where students can raise or lower their 
 
 ## Brand Personality
 
-Made by **Silicon Chicken Technologies (硅雞科技)**. The logo is a polished chrome chicken coin with black brush lettering outlined in warm tan. The product inherits that: **metallic, minimal, confident**. Chrome and graphite surfaces, black type, a single warm tan accent from the logo; the colored wheel is the only saturated element on screen. The spin is the moment of drama; everything else is quiet machined metal.
+Made by **Silicon Chicken Technologies (硅雞科技)**. Premium and minimal (高级简约): white space, black/white/grey, hairline dividers, typography carries the hierarchy (light large numerals, small tracked labels). No decoration. The company logo appears **only** as a small mark in the top-left corner of each page — never in the wheel, buttons, or content.
 
 ## Anti-references
 
 - Wordy UI: helper paragraphs, explanations of rules on every screen, "提示" text under every control.
 - Toy-like classroom apps: candy colors everywhere, rounded bubbly fonts, emoji.
+- Skeuomorphic / metallic finishes: chrome gradients, bevels, glossy highlights (tried and rejected).
 - Generic admin dashboards: grey cards, tables everywhere.
 - Over-decorated "AI" looks: paper/cream textures, heavy black offset shadows on every element.
 
@@ -29,7 +30,7 @@ Made by **Silicon Chicken Technologies (硅雞科技)**. The logo is a polished 
 1. **Show, don't explain.** The wheel, the slider and the numbers carry the meaning; text is a label, not a paragraph.
 2. **One focal point per screen.** Teacher: the wheel. Student: their slice and their slider.
 3. **Readable from the back row.** Projected text and names are big and high-contrast.
-4. **Machined, not decorated.** Metal finishes (chrome rim, hub, pointer, coin) carry the brand; color is reserved for the wheel and for being picked.
+4. **Restraint is the style.** No cards, gradients, or shadows; spacing and hairlines do the structure.
 5. **Privacy is felt, not lectured.** The UI shows only what each person is allowed to see; no repeated privacy disclaimers.
 
 ## Accessibility & Inclusion

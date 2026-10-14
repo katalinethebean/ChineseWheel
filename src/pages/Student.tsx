@@ -85,8 +85,10 @@ function PickName({ onClaimed }: { onClaimed: (token: string) => void }) {
 
   return (
     <div className="student">
+      <header className="student-head">
+        <img className="logo" src="/logo.jpg" alt="硅雞科技" width={28} height={28} />
+      </header>
       <div className="pick">
-        <img className="pick-logo" src="/logo.jpg" alt="硅雞科技" width={72} height={72} />
         <h1>你是谁？</h1>
         {error && <p className="error">{error}</p>}
         {roster.length === 0 ? (
@@ -120,8 +122,8 @@ function PickName({ onClaimed }: { onClaimed: (token: string) => void }) {
 const MIN_WEIGHT = 1
 const MAX_WEIGHT = 30
 const NORMAL_WEIGHT = 10
-const ME_COLOR = '#d4473a'
-const OTHER_COLORS = ['#d9dbdf', '#c8cbd0']
+const ME_COLOR = '#1a1a1a'
+const OTHER_COLORS = ['#ededed', '#e0e0e0']
 
 function StudentView({ token, onInvalid }: { token: string; onInvalid: () => void }) {
   const [state, setState] = useState<StudentState | null>(null)
@@ -243,7 +245,10 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
   return (
     <div className="student">
       <header className="student-head">
-        <span className="me">{state.student_name}</span>
+        <span className="me">
+          <img className="logo" src="/logo.jpg" alt="硅雞科技" width={28} height={28} />
+          {state.student_name}
+        </span>
         <CreditsBadge
           credits={state.credits}
           pending={q?.status === 'open' && q.is_candidate ? myWeight - NORMAL_WEIGHT : 0}
@@ -252,8 +257,9 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
 
       {!state.lesson_active || !q ? (
         <div className="waiting">
-          <div className="pulse" aria-hidden />
-          <p>等老师出题</p>
+          <p>
+            等老师出题<span className="dots" aria-hidden />
+          </p>
         </div>
       ) : (
         <main className="play">
@@ -333,7 +339,6 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
 function CreditsBadge({ credits, pending }: { credits: number; pending: number }) {
   return (
     <div className="credits" title="减权花 credits，加权赚 credits，转盘后结算">
-      <img className="credits-coin" src="/logo.jpg" alt="" />
       <span className="credits-num">{credits}</span>
       <span className="credits-label">credits</span>
       {pending !== 0 && (
