@@ -1,8 +1,8 @@
 import { layoutArcs, polar } from '../lib/wheel'
 
-// 黑 / 浅灰 / 中灰 三色循环
-const COLORS = ['#1a1a1a', '#ececec', '#6e6e6e']
-const TEXT_ON = ['#fff', '#1a1a1a', '#fff']
+// 和 styles.css 里的 --c1…--c6 一致
+const COLORS = ['#e9473b', '#f5b700', '#009b6e', '#2f6bff', '#8b5cf6', '#ff8fa3']
+const TEXT_ON = ['#fff', '#1a1a1a', '#fff', '#fff', '#fff', '#1a1a1a']
 
 export const SPIN_MS = 5200
 
@@ -28,7 +28,7 @@ export const equalSlices = (names: string[]): Slice[] => names.map((label) => ({
 
 function defaultColor(i: number, count: number) {
   // 首尾相邻的扇区不能同色
-  const ci = count > 1 && i === count - 1 && i % COLORS.length === 0 ? 1 : i % COLORS.length
+  const ci = count > 1 && i === count - 1 && i % COLORS.length === 0 ? 2 : i % COLORS.length
   return { color: COLORS[ci], textColor: TEXT_ON[ci] }
 }
 

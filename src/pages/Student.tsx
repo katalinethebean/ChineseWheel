@@ -122,7 +122,7 @@ function PickName({ onClaimed }: { onClaimed: (token: string) => void }) {
 const MIN_WEIGHT = 1
 const MAX_WEIGHT = 30
 const NORMAL_WEIGHT = 10
-const ME_COLOR = '#1a1a1a'
+const ME_COLOR = '#e9473b'
 const OTHER_COLORS = ['#ededed', '#e0e0e0']
 
 function StudentView({ token, onInvalid }: { token: string; onInvalid: () => void }) {

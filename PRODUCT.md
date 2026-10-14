@@ -15,7 +15,7 @@ A Chinese-language classroom name wheel where students can raise or lower their 
 
 ## Brand Personality
 
-Made by **Silicon Chicken Technologies (硅雞科技)**. Premium and minimal (高级简约): white space, black/white/grey, hairline dividers, typography carries the hierarchy (light large numerals, small tracked labels). No decoration. The company logo appears **only** as a small mark in the top-left corner of each page — never in the wheel, buttons, or content.
+Made by **Silicon Chicken Technologies (硅雞科技)**. Premium and minimal (高级简约): white space, hairline dividers, black type; color lives in the wheel and one red accent (chance, slider, winner) — an all-grey version read as "like someone died", typography carries the hierarchy (light large numerals, small tracked labels). No decoration. The company logo appears **only** as a small mark in the top-left corner of each page — never in the wheel, buttons, or content.
 
 ## Anti-references
 
