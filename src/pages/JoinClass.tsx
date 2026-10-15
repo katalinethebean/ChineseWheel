@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { errorText, rpc } from '../lib/supabase'
-import { Brand } from '../components/Brand'
+import { StudentShell } from '../components/StudentShell'
 
 /** 学生输入 6 位班级码 */
 export function JoinClass() {
@@ -28,10 +28,7 @@ export function JoinClass() {
   }
 
   return (
-    <div className="student">
-      <header className="student-head">
-        <Brand />
-      </header>
+    <StudentShell center>
       <form className="join-class" onSubmit={submit}>
         <h1>班级码</h1>
         <input
@@ -50,6 +47,6 @@ export function JoinClass() {
           加入
         </button>
       </form>
-    </div>
+    </StudentShell>
   )
 }

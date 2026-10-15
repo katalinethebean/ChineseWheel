@@ -13,8 +13,8 @@
   --wheel-empty: oklch(95% 0.01 25);
 
   /* 主色：柔和的中国红；辅色：香槟金。饱和度都调低，偏简约 */
-  --red: oklch(55% 0.11 22);
-  --red-deep: oklch(47% 0.1 22);
+  --red: oklch(44% 0.13 22);
+  --red-deep: oklch(38% 0.12 22);
   --red-soft: oklch(95.5% 0.02 22);
   --on-red: oklch(96.5% 0.018 15); /* 红底上的文字：非常淡的粉色，不用纯白 */
   --on-red-dim: oklch(96.5% 0.018 15 / 0.75);
@@ -38,8 +38,11 @@
   --z-sticky: 20;
   --z-overlay: 30;
 
-  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC', 'HarmonyOS Sans SC', 'MiSans',
-    'Microsoft YaHei', system-ui, sans-serif;
+  /* 正文：DM Sans + 系统中文字体；标题 / 数字 / 按钮：Impact（和 Fire Chicken 一样） */
+  --text: 'DM Sans', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei',
+    system-ui, sans-serif;
+  --display: Impact, Haettenschweiler, 'Anton', 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', sans-serif;
+  font-family: var(--text);
   color: var(--ink);
   background: var(--bg);
   line-height: 1.5;
@@ -1509,9 +1512,7 @@ a:has(> .brand-mark) {
 }
 
 /* 首页：白底，公司名用柔和的红色 */
-.home .brand-name {
-  color: var(--red);
-}
+
 
 /* 登录页和学生端顶部：红色条 */
 .login .home-head,
@@ -1673,4 +1674,318 @@ textarea:focus {
 /* 主按钮（红底）文字也用淡粉 */
 .btn.primary {
   color: var(--on-red);
+}
+
+/* ───────── Fire Chicken 风格：Impact 标题、深红顶栏、厚实的按钮 ───────── */
+
+h1,
+.page-head h1,
+.pick h1,
+.join-class h1,
+.login-form h1,
+.home-title {
+  font-family: var(--display);
+  font-weight: 800;
+  font-synthesis: none;
+  letter-spacing: 0.02em;
+  color: var(--red);
+}
+.home-title {
+  font-size: clamp(2.75rem, 7vw, 4.5rem);
+  letter-spacing: 0.08em;
+  margin-right: -0.08em;
+}
+
+/* 顶栏：深红，底部一条香槟金细线 */
+.topbar {
+  padding: 14px 32px;
+  box-shadow: inset 0 -2px 0 var(--gold);
+}
+.topbar .tabs a {
+  font-family: var(--display);
+  font-synthesis: none;
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
+}
+.topbar .tabs a.active::after {
+  display: none;
+}
+.topbar .tabs a.active {
+  color: var(--gold);
+}
+.topbar .class-switch {
+  font-weight: 500;
+}
+
+/* 按钮：小圆角、实色、2px 边框、Impact 字体 */
+.btn {
+  border-radius: 8px;
+  border-width: 2px;
+  font-family: var(--display);
+  font-weight: 800;
+  font-synthesis: none;
+  letter-spacing: 0.06em;
+  background: var(--surface);
+  border-color: var(--line-strong);
+}
+.btn.primary {
+  background: var(--red);
+  border-color: var(--red-deep);
+}
+.btn.gold {
+  border-color: var(--gold-deep);
+}
+.btn.sm {
+  border-radius: 6px;
+  border-width: 1.5px;
+}
+.btn.xl {
+  border-radius: 10px;
+}
+.topbar .leave-class {
+  border-width: 1.5px;
+  background: transparent;
+  border-color: var(--on-red-line);
+  color: var(--on-red);
+}
+.topbar .leave-class:hover {
+  background: var(--on-red);
+  border-color: var(--on-red);
+  color: var(--red-deep);
+}
+.btn.ghost {
+  background: transparent;
+}
+
+/* 大数字用 Impact */
+.chance-num,
+.progress b,
+.join-code,
+.winner-name,
+.result-name,
+.credits-num,
+.class-card-code {
+  font-family: var(--display);
+  font-weight: 400;
+  font-synthesis: none;
+}
+.winner-name {
+  letter-spacing: 0.04em;
+}
+
+/* 卡片：12px 圆角、2px 边框 */
+.class-grid {
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+}
+.class-card {
+  min-height: 180px;
+  border-width: 2px;
+  border-radius: 12px;
+}
+.class-card-name {
+  font-weight: 700;
+}
+
+/* ───────── 学生端：笔记本布局 ───────── */
+
+.student {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  gap: 0;
+}
+.student .topbar .me {
+  font-weight: 600;
+  color: var(--on-red);
+}
+.student-main {
+  flex: 1;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 3rem 40px 4rem;
+  display: flex;
+  flex-direction: column;
+}
+.student-main.center {
+  align-items: center;
+  justify-content: center;
+}
+
+/* 出题 / 结果：左边大转盘，右边概率、滑块、结果 */
+.play {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  align-items: center;
+  gap: clamp(2rem, 6vw, 6rem);
+}
+.play-wheel {
+  display: grid;
+  place-items: center;
+}
+.play .play-wheel .wheel {
+  width: min(100%, 480px, calc(100dvh - 220px));
+  margin: 0;
+}
+.play-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1.75rem;
+}
+.play-panel .chance {
+  align-items: flex-start;
+  min-height: 0;
+}
+.play-panel .chance-num {
+  font-size: clamp(4rem, 8vw, 6rem);
+  color: var(--red);
+  letter-spacing: 0.02em;
+}
+.play-panel .chance-label {
+  font-size: 0.95rem;
+}
+.play-panel .slider-note {
+  text-align: left;
+}
+.play-panel .result {
+  align-items: flex-start;
+  padding: 1.5rem 1.75rem;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.play-panel .result-name {
+  font-size: clamp(2.75rem, 5vw, 4rem);
+  color: var(--red);
+}
+.play-panel .result.me {
+  border-color: var(--red-deep);
+  background: var(--red);
+}
+.play-panel .result.me .result-name {
+  color: var(--gold);
+}
+.play-panel .spin-status {
+  margin: 0;
+  font-family: var(--display);
+  font-synthesis: none;
+  font-size: 1.75rem;
+  letter-spacing: 0.06em;
+  color: var(--red);
+}
+.waiting p {
+  font-family: var(--display);
+  font-synthesis: none;
+  font-size: 2rem;
+  letter-spacing: 0.08em;
+  color: var(--red);
+}
+
+/* 选名字：宽一点的网格 */
+.pick {
+  flex: none;
+  width: 100%;
+  padding-top: 0;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+.pick.narrow {
+  max-width: 420px;
+  align-items: flex-start;
+}
+.pick h1 {
+  font-size: 2.5rem;
+}
+.name-grid {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+.name-btn {
+  padding: 1rem 0.75rem;
+  border-radius: 10px;
+  border-width: 2px;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.name-btn:hover:not(:disabled):not(.selected) {
+  border-color: var(--red);
+}
+/* 笔记本：确认按钮直接放在名字下面（选名字前是灰的） */
+.pick-confirm {
+  position: static;
+  transform: none;
+  align-self: flex-start;
+  width: min(100%, 320px);
+}
+
+/* 输入班级码：居中 */
+.join-class {
+  width: min(100%, 420px);
+  padding-top: 0;
+  flex: none;
+}
+.join-class h1 {
+  font-size: 2.5rem;
+}
+.code-input {
+  font-family: var(--display);
+  font-weight: 400;
+  font-synthesis: none;
+  font-size: 3rem;
+}
+
+/* 手机等窄屏：单列 */
+@media (max-width: 760px) {
+  .topbar {
+    padding: 12px 16px;
+  }
+  .student-main {
+    padding: 1.5rem 20px 2.5rem;
+  }
+  .play {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+  .play .play-wheel .wheel {
+    width: min(100%, 300px, 42vh);
+  }
+  .play-panel .chance {
+    align-items: center;
+  }
+  .play-panel .chance-num {
+    font-size: 3.5rem;
+  }
+  .play-panel .slider-note {
+    text-align: center;
+  }
+  .student .topbar .class-switch,
+  .student .topbar .me {
+    display: none;
+  }
+  .student .topbar {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .play {
+    align-content: start;
+  }
+  .student .topbar .brand-name {
+    font-size: 0.95rem;
+  }
+  .name-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
+  /* 手机：确认按钮从底部滑上来 */
+  .pick-confirm {
+    position: sticky;
+    align-self: stretch;
+    width: auto;
+    transform: translateY(160%);
+  }
+  .pick-confirm.show {
+    transform: none;
+  }
 }

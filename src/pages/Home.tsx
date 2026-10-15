@@ -8,8 +8,8 @@ const DECOR: Slice[] = Array.from({ length: 6 }, () => ({ weight: 1 }))
 export function Home() {
   return (
     <div className="home">
-      <header className="home-head">
-        <Brand size={32} />
+      <header className="topbar">
+        <Brand />
       </header>
       <main className="home-main">
         <div className="home-wheel" aria-hidden>

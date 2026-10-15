@@ -7,7 +7,7 @@ product
 ## Users
 
 - **Teacher**: projects the 上课 page on the classroom screen and runs the lesson (new question → spin → next). Needs to operate it at a glance while talking to the class, often from a distance with a keyboard or clicker.
-- **Students**: open the 学生 page on their own phones, pick their name once per lesson, and drag a slider to say how much they want to answer the current question. Interaction lasts seconds per question.
+- **Students**: open the 学生 page on their own **laptops** (primary) or phones, pick their name once per lesson, and drag a slider to say how much they want to answer the current question. Interaction lasts seconds per question. Laptop layout is two columns (wheel left, chance/slider/result right); phones fall back to one column.
 
 ## Product Purpose
 
@@ -15,7 +15,7 @@ A Chinese-language classroom name wheel where students can raise or lower their 
 
 ## Brand Personality
 
-Made by **Silicon Chicken Technologies (硅雞科技)** — company name in Impact next to the logo, top-left only. Premium minimal layout (white space, hairlines, typography for hierarchy) with **soft auspicious color**: a muted, low-chroma red (oklch 55% 0.11 22) for top bars, primary buttons and the winner screen; a pale champagne gold for credits, secondary actions and the active tab; neutrals tinted toward red. Text on red is a very pale pink, never pure white (white felt jarring). The home page stays white. Pure black/white/grey reads as funeral / 不吉利 and was rejected; fully saturated red/gold was rejected as ugly.
+Made by **Silicon Chicken Technologies (硅雞科技)** — company name in Impact next to the logo, top-left only. **Vibe reference: firechickenproductions.com** (the user's other site): Impact display type for headings, big numbers and buttons; DM Sans body; a solid deep-crimson top bar on every page with a thin gold rule; chunky solid buttons (8px radius, 2px border). Simpler colors than that site — only three: deep crimson (oklch 44% 0.13 22), pale champagne gold, and a near-white page tinted toward red. No stripes, orange or green blocks. Text on red is a very pale pink, never pure white (white felt jarring). The home page stays white. Pure black/white/grey reads as funeral / 不吉利 and was rejected; fully saturated red/gold was rejected as ugly.
 
 ## Anti-references
 
@@ -35,4 +35,4 @@ Made by **Silicon Chicken Technologies (硅雞科技)** — company name in Impa
 
 ## Accessibility & Inclusion
 
-No special requirements beyond WCAG AA contrast and honoring prefers-reduced-motion. Student page must work one-handed on small phones.
+No special requirements beyond WCAG AA contrast and honoring prefers-reduced-motion. Student page is designed for laptops first and must still work on phones.

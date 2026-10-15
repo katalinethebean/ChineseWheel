@@ -6,7 +6,7 @@ import { errorText, rpc, supabase } from '../lib/supabase'
 import type { StudentState } from '../lib/types'
 import { MIN_WEIGHT, NORMAL_WEIGHT, SLIDER_MAX, pct, posOf, weightAt } from '../lib/slider'
 import { layoutArcs, targetRotationInArc } from '../lib/wheel'
-import { Brand } from '../components/Brand'
+import { StudentShell } from '../components/StudentShell'
 
 type RosterEntry = { id: string; name: string; claimed: boolean }
 
@@ -93,32 +93,23 @@ function PickName({ code, onClaimed }: { code: string; onClaimed: (token: string
     }
   }
 
-  if (roster === undefined) return <div className="student">{error && <p className="error">{error}</p>}</div>
+  if (roster === undefined) return <StudentShell>{error && <p className="error">{error}</p>}</StudentShell>
   if (roster === null)
     return (
-      <div className="student">
-        <header className="student-head">
-          <Brand />
-        </header>
-        <div className="pick">
+      <StudentShell center>
+        <div className="pick narrow">
           <h1>没有这个班级</h1>
           <Link className="btn lg" to="/student">
             重新输入班级码
           </Link>
         </div>
-      </div>
+      </StudentShell>
     )
 
   return (
-    <div className="student">
-      <header className="student-head">
-        <Brand />
-      </header>
+    <StudentShell title={className}>
       <div className="pick">
-        <div className="pick-title">
-          <span className="count">{className}</span>
-          <h1>你是谁？</h1>
-        </div>
+        <h1>你是谁？</h1>
         {error && <p className="error">{error}</p>}
         {roster.length === 0 ? (
           <p className="muted">老师还没添加名单</p>
@@ -144,7 +135,7 @@ function PickName({ code, onClaimed }: { code: string; onClaimed: (token: string
           我是 {chosen?.name ?? '…'}
         </button>
       </div>
-    </div>
+    </StudentShell>
   )
 }
 
@@ -264,24 +255,25 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
     }, 200)
   }
 
-  if (!state?.valid) return <div className="student">{error && <p className="error">{error}</p>}</div>
+  if (!state?.valid) return <StudentShell>{error && <p className="error">{error}</p>}</StudentShell>
 
   const revealed = Date.now() >= revealAt
   const blocked = q?.status === 'open' && q.is_candidate && myWeight <= q.min_weight && q.min_weight > MIN_WEIGHT
 
   return (
-    <div className="student">
-      <header className="student-head">
-        <Brand />
-      </header>
-      <div className="student-bar">
-        <span className="me">{state.student_name}</span>
-        <CreditsBadge
-          credits={state.credits}
-          pending={q?.status === 'open' && q.is_candidate ? creditChange(myWeight - NORMAL_WEIGHT) : null}
-        />
-      </div>
-
+    <StudentShell
+      title={state.class_name}
+      center={!state.lesson_active || !q}
+      right={
+        <>
+          <span className="me">{state.student_name}</span>
+          <CreditsBadge
+            credits={state.credits}
+            pending={q?.status === 'open' && q.is_candidate ? creditChange(myWeight - NORMAL_WEIGHT) : null}
+          />
+        </>
+      }
+    >
       {!state.lesson_active || !q ? (
         <div className="waiting">
           <p>
@@ -289,77 +281,79 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
           </p>
         </div>
       ) : (
-        <main className="play">
-          <Wheel
-            slices={slices}
-            rotation={rotation}
-            spinning={spinning}
-            spinMs={spinMs}
-            winnerIndex={q.status === 'spun' && revealed ? landedIndex : null}
-            emptyText=""
-          />
-
-          {q.status === 'open' ? (
-            <>
-              <div className="chance" aria-live="polite">
-                {q.is_candidate ? (
-                  <>
-                    <span className="chance-num">{formatChance(chance)}</span>
-                    <span className="chance-label">被抽中概率</span>
-                  </>
-                ) : (
-                  <span className="chance-label">这题你不在转盘上</span>
-                )}
-              </div>
-
-              <div className="slider">
-                <input
-                  type="range"
-                  min={0}
-                  max={SLIDER_MAX}
-                  step={1}
-                  value={posOf(myWeight)}
-                  onChange={(e) => changeWeight(weightAt(Number(e.target.value)))}
-                  disabled={!q.is_candidate}
-                  aria-label="我的权重"
-                  aria-valuetext={`权重 ${myWeight}`}
-                  style={{ '--fill': `${pct(myWeight)}%`, '--lock': `${pct(q.min_weight)}%` } as CSSProperties}
-                />
-                <div className="slider-labels">
-                  <span>不想答</span>
-                  <button
-                    className="slider-normal"
-                    style={{ left: `${pct(NORMAL_WEIGHT)}%` }}
-                    onClick={() => changeWeight(NORMAL_WEIGHT)}
-                    disabled={!q.is_candidate}
-                  >
-                    平时
-                  </button>
-                  <span>想答</span>
+        <div className="play">
+          <div className="play-wheel">
+            <Wheel
+              slices={slices}
+              rotation={rotation}
+              spinning={spinning}
+              spinMs={spinMs}
+              winnerIndex={q.status === 'spun' && revealed ? landedIndex : null}
+              emptyText=""
+            />
+          </div>
+          <div className="play-panel">
+            {q.status === 'open' ? (
+              <>
+                <div className="chance" aria-live="polite">
+                  {q.is_candidate ? (
+                    <>
+                      <span className="chance-num">{formatChance(chance)}</span>
+                      <span className="chance-label">被抽中概率</span>
+                    </>
+                  ) : (
+                    <span className="chance-label">这题你不在转盘上</span>
+                  )}
                 </div>
-              </div>
-              <p className={blocked ? 'slider-note warn-text' : 'slider-note'}>
-                {blocked ? (state.credits === 0 ? 'credits 用完了，只能加' : 'credits 不够，不能再减') : `权重 ${myWeight}`}
-              </p>
-            </>
-          ) : !revealed ? (
-            <p className="spin-status">转盘中…</p>
-          ) : q.is_me ? (
-            <div className="result me">
-              <span className="result-label">被抽中的是</span>
-              <span className="result-name">你！</span>
-            </div>
-          ) : (
-            <div className="result">
-              <span className="result-label">被抽中的是</span>
-              <span className="result-name">{q.winner_name}</span>
-            </div>
-          )}
-        </main>
-      )}
 
-      {error && <p className="error">{error}</p>}
-    </div>
+                <div className="slider">
+                  <input
+                    type="range"
+                    min={0}
+                    max={SLIDER_MAX}
+                    step={1}
+                    value={posOf(myWeight)}
+                    onChange={(e) => changeWeight(weightAt(Number(e.target.value)))}
+                    disabled={!q.is_candidate}
+                    aria-label="我的权重"
+                    aria-valuetext={`权重 ${myWeight}`}
+                    style={{ '--fill': `${pct(myWeight)}%`, '--lock': `${pct(q.min_weight)}%` } as CSSProperties}
+                  />
+                  <div className="slider-labels">
+                    <span>不想答</span>
+                    <button
+                      className="slider-normal"
+                      style={{ left: `${pct(NORMAL_WEIGHT)}%` }}
+                      onClick={() => changeWeight(NORMAL_WEIGHT)}
+                      disabled={!q.is_candidate}
+                    >
+                      平时
+                    </button>
+                    <span>想答</span>
+                  </div>
+                </div>
+                <p className={blocked ? 'slider-note warn-text' : 'slider-note'}>
+                  {blocked ? (state.credits === 0 ? 'credits 用完了，只能加' : 'credits 不够，不能再减') : `权重 ${myWeight}`}
+                </p>
+              </>
+            ) : !revealed ? (
+              <p className="spin-status">转盘中…</p>
+            ) : q.is_me ? (
+              <div className="result me">
+                <span className="result-label">被抽中的是</span>
+                <span className="result-name">你！</span>
+              </div>
+            ) : (
+              <div className="result">
+                <span className="result-label">被抽中的是</span>
+                <span className="result-name">{q.winner_name}</span>
+              </div>
+            )}
+            {error && <p className="error">{error}</p>}
+          </div>
+        </div>
+      )}
+    </StudentShell>
   )
 }
 
