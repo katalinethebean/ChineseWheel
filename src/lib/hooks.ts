@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import type { ClassRow } from './types'
 
@@ -52,4 +53,15 @@ export async function renameClass(id: string, name: string) {
   const { error } = await supabase.from('classes').update({ name }).eq('id', id)
   if (error) throw error
   window.dispatchEvent(new CustomEvent('class-renamed', { detail: { id, name } }))
+}
+
+/** 老师的登录状态；undefined = 还在读取，null = 未登录 */
+export function useSession(): Session | null | undefined {
+  const [session, setSession] = useState<Session | null | undefined>(undefined)
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    const { data } = supabase.auth.onAuthStateChange((_event, s) => setSession(s))
+    return () => data.subscription.unsubscribe()
+  }, [])
+  return session
 }

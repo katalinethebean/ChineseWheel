@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { errorText, supabase } from '../lib/supabase'
+import { errorText, rpc } from '../lib/supabase'
 
 /** 学生输入 6 位班级码 */
 export function JoinClass() {
@@ -15,10 +15,14 @@ export function JoinClass() {
     if (c.length !== 6) return
     setBusy(true)
     setError('')
-    const { data, error } = await supabase.from('classes').select('join_code').eq('join_code', c).maybeSingle()
-    setBusy(false)
-    if (error) return setError(errorText(error))
-    if (!data) return setError('没有这个班级码')
+    try {
+      const cls = await rpc<{ id: string } | null>('class_by_code', { p_code: c })
+      if (!cls) return setError('没有这个班级码')
+    } catch (e) {
+      return setError(errorText(e))
+    } finally {
+      setBusy(false)
+    }
     navigate(`/student/${c}`)
   }
 

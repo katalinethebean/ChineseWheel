@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { renameClass } from '../lib/hooks'
-import { errorText, supabase } from '../lib/supabase'
+import { errorText, rpc, supabase } from '../lib/supabase'
 import type { ClassRow } from '../lib/types'
 
 type ClassWithCount = ClassRow & { count: number }
@@ -13,20 +13,33 @@ export function ClassList() {
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [unowned, setUnowned] = useState<ClassRow[]>([])
+
+  async function load() {
+    const [c, s] = await Promise.all([
+      supabase.from('classes').select('*').order('created_at'),
+      supabase.from('students').select('class_id'),
+    ])
+    const err = c.error || s.error
+    if (err) return setError(errorText(err))
+    const counts = new Map<string, number>()
+    for (const { class_id } of s.data) counts.set(class_id, (counts.get(class_id) ?? 0) + 1)
+    setClasses(c.data.map((cls) => ({ ...cls, count: counts.get(cls.id) ?? 0 })))
+    setUnowned(await rpc<ClassRow[]>('unowned_classes').catch(() => []))
+  }
 
   useEffect(() => {
-    ;(async () => {
-      const [c, s] = await Promise.all([
-        supabase.from('classes').select('*').order('created_at'),
-        supabase.from('students').select('class_id'),
-      ])
-      const err = c.error || s.error
-      if (err) return setError(errorText(err))
-      const counts = new Map<string, number>()
-      for (const { class_id } of s.data) counts.set(class_id, (counts.get(class_id) ?? 0) + 1)
-      setClasses(c.data.map((cls) => ({ ...cls, count: counts.get(cls.id) ?? 0 })))
-    })()
+    load()
   }, [])
+
+  async function adopt(c: ClassRow) {
+    try {
+      await rpc('adopt_class', { p_class_id: c.id })
+      await load()
+    } catch (e) {
+      setError(errorText(e))
+    }
+  }
 
   async function rename(c: ClassRow) {
     const name = window.prompt('班级名称', c.name)?.trim()
@@ -56,6 +69,17 @@ export function ClassList() {
       </header>
 
       {error && <p className="error">{error}</p>}
+
+      {unowned.map((c) => (
+        <div key={c.id} className="adopt">
+          <span>
+            以前建的班级「{c.name}」还没有老师
+          </span>
+          <button className="btn sm primary" onClick={() => adopt(c)}>
+            归到我名下
+          </button>
+        </div>
+      ))}
 
       {classes && (
         <div className="class-grid">

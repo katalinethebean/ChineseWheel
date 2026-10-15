@@ -63,17 +63,14 @@ function PickName({ code, onClaimed }: { code: string; onClaimed: (token: string
   const [error, setError] = useState('')
 
   const load = useCallback(async () => {
-    const c = await supabase.from('classes').select('id, name').eq('join_code', code).maybeSingle()
-    if (c.error) return setError(errorText(c.error))
-    if (!c.data) return setRoster(null)
-    setClassName(c.data.name)
-    const { data, error } = await supabase
-      .from('students')
-      .select('id, name, claimed')
-      .eq('class_id', c.data.id)
-      .order('seq')
-    if (error) setError(errorText(error))
-    else setRoster(data)
+    try {
+      const cls = await rpc<{ name: string } | null>('class_by_code', { p_code: code })
+      if (!cls) return setRoster(null)
+      setClassName(cls.name)
+      setRoster(await rpc<RosterEntry[]>('class_roster', { p_code: code }))
+    } catch (e) {
+      setError(errorText(e))
+    }
   }, [code])
 
   useEffect(() => {

@@ -1343,3 +1343,57 @@ textarea {
     animation: none;
   }
 }
+
+/* ───────── 老师登录 ───────── */
+
+.login {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.login-form {
+  width: 100%;
+  max-width: 340px;
+  margin: 0 auto;
+  padding: 10vh 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.login-form h1 {
+  font-size: 1.9rem;
+  font-weight: 300;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.75rem;
+}
+.login-form .btn {
+  margin-top: 0.75rem;
+}
+.login-switch {
+  align-self: center;
+  font-size: 0.85rem;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+}
+.topbar-right > .btn-link {
+  font-size: 0.85rem;
+}
+.account {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.adopt {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 0;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--line);
+}

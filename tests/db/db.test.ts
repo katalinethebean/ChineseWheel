@@ -6,10 +6,15 @@ import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 let db: PGlite
 
-type Role = 'anon' | 'postgres'
+// 'teacher' / 'teacher2' 是两个已登录的老师账号（authenticated 角色 + 不同的 auth.uid()）
+type Role = 'anon' | 'postgres' | 'teacher' | 'teacher2'
+const TEACHER_IDS = { teacher: '00000000-0000-0000-0000-0000000000a1', teacher2: '00000000-0000-0000-0000-0000000000a2' }
+const T: Role = 'teacher'
 
 async function q<T = Record<string, unknown>>(role: Role, sql: string, params: unknown[] = []): Promise<T[]> {
-  await db.exec(role === 'postgres' ? 'reset role' : `set role ${role}`)
+  const uid = role === 'teacher' || role === 'teacher2' ? TEACHER_IDS[role] : ''
+  await db.query(`select set_config('request.jwt.claim.sub', $1, false)`, [uid])
+  await db.exec(role === 'postgres' ? 'reset role' : uid ? 'set role authenticated' : `set role ${role}`)
   try {
     return (await db.query<T>(sql, params)).rows
   } finally {
@@ -25,7 +30,7 @@ async function one<T = Record<string, unknown>>(role: Role, sql: string, params:
 let classId = ''
 
 async function createClass(name: string) {
-  return one<{ id: string; join_code: string }>('anon', `insert into classes (name) values ($1) returning id, join_code`, [name])
+  return one<{ id: string; join_code: string }>(T, `insert into classes (name) values ($1) returning id, join_code`, [name])
 }
 
 /** 清空所有数据，重建一个默认班级 */
@@ -36,8 +41,8 @@ async function resetDb() {
 
 /** 以老师身份（匿名）往班级里添加学生，返回 名字 → id */
 async function addStudents(names: string[], cls = classId) {
-  for (const name of names) await q('anon', `insert into students (class_id, name) values ($1, $2)`, [cls, name])
-  const rows = await q<{ id: string; name: string }>('anon', `select id, name from students where class_id = $1 order by seq`, [cls])
+  for (const name of names) await q(T, `insert into students (class_id, name) values ($1, $2)`, [cls, name])
+  const rows = await q<{ id: string; name: string }>(T, `select id, name from students where class_id = $1 order by seq`, [cls])
   return Object.fromEntries(rows.map((s) => [s.name, s.id])) as Record<string, string>
 }
 
@@ -48,12 +53,12 @@ const state = async (token: string) =>
 const adjust = async (token: string, questionId: string, step: number) =>
   (await one<{ w: number }>('anon', `select adjust($1, $2, $3) as w`, [token, questionId, step])).w
 const startLesson = async (excludePicked = false, cls = classId) =>
-  (await one<{ id: string }>('anon', `select start_lesson($1, $2) as id`, [cls, excludePicked])).id
+  (await one<{ id: string }>(T, `select start_lesson($1, $2) as id`, [cls, excludePicked])).id
 const startQuestion = async (lessonId: string) =>
-  (await one<{ id: string }>('anon', `select start_question($1) as id`, [lessonId])).id
+  (await one<{ id: string }>(T, `select start_question($1) as id`, [lessonId])).id
 const spin = async (questionId: string) =>
-  (await one<{ r: { winner_id: string; winner_name: string } }>('anon', `select spin($1) as r`, [questionId])).r
-const settle = async (lessonId: string) => q('anon', `select settle_lesson($1)`, [lessonId])
+  (await one<{ r: { winner_id: string; winner_name: string } }>(T, `select spin($1) as r`, [questionId])).r
+const settle = async (lessonId: string) => q(T, `select settle_lesson($1)`, [lessonId])
 
 async function adjustTimes(token: string, questionId: string, step: number, times: number) {
   let w = 0
@@ -68,6 +73,7 @@ beforeAll(async () => {
   for (const file of readdirSync(dir).sort()) {
     await db.exec(readFileSync(join(dir, file), 'utf8'))
   }
+  await db.query('insert into auth.users (id) values ($1), ($2)', [TEACHER_IDS.teacher, TEACHER_IDS.teacher2])
 })
 
 beforeEach(resetDb)
@@ -81,9 +87,9 @@ describe('权限', () => {
 
   it('不能读取设备令牌，也不能直接改统计数字', async () => {
     await addStudents(['甲'])
-    await expect(q('anon', 'select device_token_hash from students')).rejects.toThrow(/permission denied/)
-    await expect(q('anon', 'update students set total_plus = 99')).rejects.toThrow(/permission denied/)
-    await expect(q('anon', 'update students set device_token_hash = null')).rejects.toThrow(/permission denied/)
+    await expect(q(T, 'select device_token_hash from students')).rejects.toThrow(/permission denied/)
+    await expect(q(T, 'update students set total_plus = 99')).rejects.toThrow(/permission denied/)
+    await expect(q(T, 'update students set device_token_hash = null')).rejects.toThrow(/permission denied/)
   })
 
   it('不能直接修改题目或调用内部函数', async () => {
@@ -96,18 +102,18 @@ describe('权限', () => {
 describe('学生认领名字', () => {
   it('一个名字只能被认领一次，老师可以解绑', async () => {
     const ids = await addStudents(['张三', '李四'])
-    const roster = await q<any>('anon', `select name, claimed from students order by seq`)
+    const roster = await q<any>(T, `select name, claimed from students order by seq`)
     expect(roster).toEqual([{ name: '张三', claimed: false }, { name: '李四', claimed: false }])
 
     const token = await claim(ids['张三'])
     expect(token).toMatch(/^[0-9a-f]{48}$/)
     await expect(claim(ids['张三'])).rejects.toThrow(/已经被其他设备认领/)
-    expect((await one<any>('anon', `select claimed from students where id = $1`, [ids['张三']])).claimed).toBe(true)
+    expect((await one<any>(T, `select claimed from students where id = $1`, [ids['张三']])).claimed).toBe(true)
 
     expect((await state(token)).student_name).toBe('张三')
     expect((await state('wrong-token')).valid).toBe(false)
 
-    await q('anon', `select release_student($1)`, [ids['张三']])
+    await q(T, `select release_student($1)`, [ids['张三']])
     expect((await state(token)).valid).toBe(false)
     expect(await claim(ids['张三'])).toBeTruthy()
   })
@@ -130,7 +136,7 @@ describe('上课流程', () => {
     expect(await adjust(t1, qid, 1)).toBe(6)
     await expect(adjust(t1, qid, 2)).rejects.toThrow(/只能加一或减一/)
 
-    const ts = await one<{ s: any }>('anon', `select teacher_lesson_state($1) as s`, [lesson])
+    const ts = await one<{ s: any }>(T, `select teacher_lesson_state($1) as s`, [lesson])
     expect(ts.s.question.adjusted_count).toBe(1)
     // 老师端状态里不包含任何权重信息
     expect(JSON.stringify(ts.s)).not.toMatch(/weight|delta/)
@@ -160,9 +166,9 @@ describe('上课流程', () => {
     const t1 = await claim(ids['张三'])
     const lesson = await startLesson()
     await state(t1)
-    await q('anon', `update attendance set present = false where lesson_id = $1 and student_id = $2`,
+    await q(T, `update attendance set present = false where lesson_id = $1 and student_id = $2`,
       [lesson, ids['张三']])
-    await q('anon', `insert into attendance (lesson_id, student_id) values ($1, $2)`, [lesson, ids['李四']])
+    await q(T, `insert into attendance (lesson_id, student_id) values ($1, $2)`, [lesson, ids['李四']])
     await state(t1)
 
     for (let i = 0; i < 10; i++) {
@@ -199,7 +205,7 @@ describe('上课流程', () => {
     const setW = async (t: string, qid: string, w: number) =>
       (await one<{ w: number }>('anon', `select set_weight($1, $2, $3) as w`, [t, qid, w])).w
     expect(await credits(t1)).toBe(5)
-    await expect(q('anon', 'select credits from students')).rejects.toThrow(/permission denied/)
+    await expect(q(T, 'select credits from students')).rejects.toThrow(/permission denied/)
 
     // 第一题：张三减 5（用光），李四加 14
     let qid = await startQuestion(lesson)
@@ -236,11 +242,11 @@ describe('上课流程', () => {
 
     // credits 复原：所有人回到 5，统计不变
     await q('postgres', `update students set total_plus = 7 where id = $1`, [ids['张三']])
-    await q('anon', 'select reset_credits($1)', [classId])
+    await q(T, 'select reset_credits($1)', [classId])
     expect(await one<any>('postgres', `select credits, total_plus from students where id = $1`, [ids['张三']])).toEqual({ credits: 5, total_plus: 7 })
 
     // 统计清零也重置 credits
-    await q('anon', 'select reset_stats($1)', [classId])
+    await q(T, 'select reset_stats($1)', [classId])
     expect(await one<any>('postgres', `select credits from students where id = $1`, [ids['李四']])).toEqual({ credits: 5 })
   })
 
@@ -301,7 +307,7 @@ describe('上课流程', () => {
 
     await spin(qid)
     // 转完后王五才加入，不影响快照
-    await q('anon', `insert into attendance (lesson_id, student_id) values ($1, $2)`, [lesson, ids['王五']])
+    await q(T, `insert into attendance (lesson_id, student_id) values ($1, $2)`, [lesson, ids['王五']])
     s = (await state(t1)).question
     expect(s).toMatchObject({ status: 'spun', weight: 15, total_weight: 22, candidate_count: 2, is_candidate: true })
     expect(s.seconds_since_spin).toBeGreaterThanOrEqual(0)
@@ -312,8 +318,8 @@ describe('上课流程', () => {
     const t1 = await claim(ids['张三'])
     const lesson = await startLesson()
     await state(t1)
-    await q('anon', `insert into attendance (lesson_id, student_id) values ($1, $2)`, [lesson, ids['李四']])
-    await q('anon', `update attendance set present = false where student_id = $1`, [ids['张三']])
+    await q(T, `insert into attendance (lesson_id, student_id) values ($1, $2)`, [lesson, ids['李四']])
+    await q(T, `update attendance set present = false where student_id = $1`, [ids['张三']])
     const qid = await startQuestion(lesson)
     expect((await state(t1)).question).toMatchObject({ is_candidate: false, total_weight: 10, candidate_count: 1 })
     await spin(qid)
@@ -378,13 +384,13 @@ describe('下课结算', () => {
     const q3 = await startQuestion(lesson)
     await adjustTimes(t1, q3, 1, 5)      // 没转就下课 → 不计入
 
-    const before = await q<any>('anon', `select total_plus, total_minus from students`)
+    const before = await q<any>(T, `select total_plus, total_minus from students`)
     expect(before.every((s) => s.total_plus === 0 && s.total_minus === 0)).toBe(true)
 
     await settle(lesson)
     await settle(lesson)
 
-    const rows = await q<any>('anon', `select name, total_plus, total_minus from students order by seq`)
+    const rows = await q<any>(T, `select name, total_plus, total_minus from students order by seq`)
     expect(rows).toEqual([
       { name: '张三', total_plus: 6, total_minus: -2 },
       { name: '李四', total_plus: 4, total_minus: -5 },
@@ -404,11 +410,11 @@ describe('下课结算', () => {
     await state(t1)
     await settle(lesson)
     expect((await state(t1)).valid).toBe(false)
-    expect(await q<any>('anon', `select name from students where claimed`)).toEqual([])
+    expect(await q<any>(T, `select name from students where claimed`)).toEqual([])
 
     const t2 = await claim(ids['李四'])
     await claim(ids['张三'])
-    await q('anon', `select release_all($1)`, [classId])
+    await q(T, `select release_all($1)`, [classId])
     expect((await state(t2)).valid).toBe(false)
     expect(await claim(ids['李四'])).toBeTruthy()
   })
@@ -421,20 +427,20 @@ describe('下课结算', () => {
     await adjust(t1, qid, 1)
     await spin(qid)
     await settle(lesson)
-    await q('anon', `select reset_stats($1)`, [classId])
-    expect(await one<any>('anon', `select total_plus, total_minus from students`)).toEqual({ total_plus: 0, total_minus: 0 })
+    await q(T, `select reset_stats($1)`, [classId])
+    expect(await one<any>(T, `select total_plus, total_minus from students`)).toEqual({ total_plus: 0, total_minus: 0 })
   })
 })
 
 describe('多班级', () => {
   it('每个班有不同的 6 位班级码；同名学生可以在不同班', async () => {
     const other = await createClass('二班')
-    const mine = await one<any>('anon', 'select join_code from classes where id = $1', [classId])
+    const mine = await one<any>(T, 'select join_code from classes where id = $1', [classId])
     expect(mine.join_code).toMatch(/^[A-Z2-9]{6}$/)
     expect(other.join_code).not.toBe(mine.join_code)
     await addStudents(['张三'])
     await addStudents(['张三'], other.id)
-    await expect(q('anon', `insert into students (class_id, name) values ($1, '张三')`, [classId])).rejects.toThrow(/duplicate/)
+    await expect(q(T, `insert into students (class_id, name) values ($1, '张三')`, [classId])).rejects.toThrow(/duplicate/)
   })
 
   it('两个班可以同时上课，互不影响：在场名单、结算解绑、统计清零只作用于本班', async () => {
@@ -448,7 +454,7 @@ describe('多班级', () => {
     await state(ta)
     await state(tb)
 
-    const sa = (await one<{ s: any }>('anon', 'select teacher_lesson_state($1) as s', [la])).s
+    const sa = (await one<{ s: any }>(T, 'select teacher_lesson_state($1) as s', [la])).s
     expect(sa.students.map((s: any) => s.name)).toEqual(['甲'])
     expect((await state(ta)).class_name).toBe('测试班')
 
@@ -459,15 +465,81 @@ describe('多班级', () => {
     expect((await state(tb)).valid).toBe(true)    // 二班不受影响
 
     await q('postgres', 'update students set total_plus = 3, credits = 9')
-    await q('anon', 'select reset_stats($1)', [classId])
+    await q(T, 'select reset_stats($1)', [classId])
     expect(await one<any>('postgres', 'select total_plus, credits from students where id = $1', [b['乙']])).toEqual({ total_plus: 3, credits: 9 })
   })
 
   it('删除班级会删除它的学生和课次', async () => {
     await addStudents(['甲'])
     await startLesson()
-    await q('anon', 'delete from classes where id = $1', [classId])
+    await q(T, 'delete from classes where id = $1', [classId])
     expect(await one<any>('postgres', 'select count(*)::int as n from students')).toEqual({ n: 0 })
     expect(await one<any>('postgres', 'select count(*)::int as n from lessons')).toEqual({ n: 0 })
+  })
+})
+
+describe('老师登录与权限', () => {
+  it('学生（未登录）不能直接读班级、名单、课次，也不能调用老师端函数', async () => {
+    const ids = await addStudents(['甲'])
+    const lesson = await startLesson()
+    await expect(q('anon', 'select * from classes')).rejects.toThrow(/permission denied/)
+    await expect(q('anon', 'select name from students')).rejects.toThrow(/permission denied/)
+    await expect(q('anon', 'select * from lessons')).rejects.toThrow(/permission denied/)
+    await expect(q('anon', 'select start_lesson($1, false)', [classId])).rejects.toThrow(/permission denied/)
+    await expect(q('anon', 'select teacher_lesson_state($1)', [lesson])).rejects.toThrow(/permission denied/)
+    await expect(q('anon', 'select release_student($1)', [ids['甲']])).rejects.toThrow(/permission denied/)
+    await expect(q('anon', 'select reset_stats($1)', [classId])).rejects.toThrow(/permission denied/)
+  })
+
+  it('学生凭班级码能查到班级和名单（只有名字和是否已选）', async () => {
+    await addStudents(['甲', '乙'])
+    const code = (await one<any>(T, 'select join_code from classes where id = $1', [classId])).join_code
+    const cls = (await one<any>('anon', 'select class_by_code($1) as c', [code.toLowerCase()])).c
+    expect(cls).toMatchObject({ id: classId, name: '测试班', join_code: code })
+    const roster = (await one<any>('anon', 'select class_roster($1) as r', [code])).r
+    expect(roster.map((s: any) => s.name)).toEqual(['甲', '乙'])
+    expect(Object.keys(roster[0]).sort()).toEqual(['claimed', 'id', 'name'])
+    expect((await one<any>('anon', `select class_by_code('XXXXXX') as c`)).c).toBeNull()
+  })
+
+  it('另一个老师看不到也操作不了别人的班', async () => {
+    const ids = await addStudents(['甲'])
+    const t1 = await claim(ids['甲'])
+    const lesson = await startLesson()
+    await state(t1)
+    const qid = await startQuestion(lesson)
+
+    expect(await q('teacher2', 'select * from classes')).toEqual([])
+    expect(await q('teacher2', 'select id from students')).toEqual([])
+    expect(await q('teacher2', 'select id from lessons')).toEqual([])
+    await expect(q('teacher2', 'select start_lesson($1, false)', [classId])).rejects.toThrow(/没有权限/)
+    await expect(q('teacher2', 'select start_question($1)', [lesson])).rejects.toThrow(/没有权限/)
+    await expect(q('teacher2', 'select spin($1)', [qid])).rejects.toThrow(/没有权限/)
+    await expect(q('teacher2', 'select teacher_lesson_state($1)', [lesson])).rejects.toThrow(/没有权限/)
+    await expect(q('teacher2', 'select settle_lesson($1)', [lesson])).rejects.toThrow(/没有权限/)
+    await expect(q('teacher2', 'select release_student($1)', [ids['甲']])).rejects.toThrow(/没有权限/)
+    await expect(q('teacher2', 'select release_all($1)', [classId])).rejects.toThrow(/没有权限/)
+    await expect(q('teacher2', 'select reset_stats($1)', [classId])).rejects.toThrow(/没有权限/)
+    await expect(q('teacher2', 'select reset_credits($1)', [classId])).rejects.toThrow(/没有权限/)
+    await expect(q('teacher2', `insert into students (class_id, name) values ($1, '乙')`, [classId])).rejects.toThrow(/row-level security/)
+    // 改名 / 删除别人的班：静默无效
+    await q('teacher2', `update classes set name = 'x' where id = $1`, [classId])
+    await q('teacher2', 'delete from classes where id = $1', [classId])
+    expect((await one<any>(T, 'select name from classes where id = $1', [classId])).name).toBe('测试班')
+  })
+
+  it('新建的班自动属于当前老师', async () => {
+    const c = await one<any>('teacher2', `insert into classes (name) values ('二班') returning teacher_id`)
+    expect(c.teacher_id).toBe(TEACHER_IDS.teacher2)
+  })
+
+  it('以前没有老师的班可以被认领一次', async () => {
+    const old = await one<any>('postgres', `insert into classes (name, teacher_id) values ('旧班', null) returning id`)
+    expect((await one<any>(T, 'select unowned_classes() as u')).u.map((c: any) => c.name)).toEqual(['旧班'])
+    await expect(q('anon', 'select adopt_class($1)', [old.id])).rejects.toThrow(/permission denied/)
+    await q(T, 'select adopt_class($1)', [old.id])
+    expect((await one<any>(T, 'select name from classes where id = $1', [old.id])).name).toBe('旧班')
+    await expect(q('teacher2', 'select adopt_class($1)', [old.id])).rejects.toThrow(/已经有老师了/)
+    expect((await one<any>(T, 'select unowned_classes() as u')).u).toEqual([])
   })
 })
