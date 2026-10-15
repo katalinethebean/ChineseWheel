@@ -177,7 +177,7 @@ describe('上课流程', () => {
     await expect(setW(10)).rejects.toThrow(/已经结束/)
   })
 
-  it('credits：初始 5 个，减 1 花 1 个、加 5 赚 1 个，转盘后才生效，不能小于 0', async () => {
+  it('credits：初始 5 个；减 1 花 1 个；加权被抽中每 5 赚 1 个，没抽中给安慰奖；转盘后才生效', async () => {
     const ids = await addStudents(['张三', '李四'])
     const t1 = await claim(ids['张三'])
     const t2 = await claim(ids['李四'])
@@ -190,35 +190,38 @@ describe('上课流程', () => {
     expect(await credits(t1)).toBe(5)
     await expect(q('anon', 'select credits from students')).rejects.toThrow(/permission denied/)
 
-    // 第一题：张三减 5（用光），李四加 14（赚 2 个，向下取整）
+    // 第一题：张三减 5（用光），李四加 14
     let qid = await startQuestion(lesson)
     expect((await state(t1)).question.min_weight).toBe(5)
     await expect(setW(t1, qid, 4)).rejects.toThrow(/credits 不够，最多只能减到 5/)
     await setW(t1, qid, 5)
     await setW(t2, qid, 24)
     expect(await credits(t1)).toBe(5)   // 转盘前不变
-    await spin(qid)
-    expect(await credits(t1)).toBe(0)
-    expect(await credits(t2)).toBe(7)
+    let r = await spin(qid)
+    expect(await credits(t1)).toBe(0)   // 减权不管抽没抽中都花
+    expect(await credits(t2)).toBe(r.winner_name === '李四' ? 5 + 2 : 5 + 1)   // 抽中 14/5=2，没抽中安慰 1
 
-    // 第二题：张三 credits 为 0，不能减，只能加
+    // 第二题：张三 credits 为 0，不能减，只能加；+4 不够 5，抽没抽中都不赚
     qid = await startQuestion(lesson)
     expect((await state(t1)).question.min_weight).toBe(10)
     await expect(setW(t1, qid, 9)).rejects.toThrow(/credits 不够/)
     expect(await adjust(t1, qid, -1)).toBe(10)
-    await setW(t1, qid, 14)   // +4：不够 5，不赚
+    await setW(t1, qid, 14)
     await spin(qid)
     expect(await credits(t1)).toBe(0)
+
+    // 第三题：张三 +60 → 抽中 12 个，没抽中安慰 2 个
     qid = await startQuestion(lesson)
-    await setW(t1, qid, 25)   // +15：赚 3 个
-    await spin(qid)
-    expect(await credits(t1)).toBe(3)
+    await setW(t1, qid, 70)
+    r = await spin(qid)
+    const c = await credits(t1)
+    expect(c).toBe(r.winner_name === '张三' ? 12 : 2)
 
     // 没转就下课：不算
     qid = await startQuestion(lesson)
     await setW(t1, qid, 100)
     await settle(lesson)
-    expect(await one<any>('postgres', `select credits from students where id = $1`, [ids['张三']])).toEqual({ credits: 3 })
+    expect(await one<any>('postgres', `select credits from students where id = $1`, [ids['张三']])).toEqual({ credits: c })
 
     // credits 复原：所有人回到 5，统计不变
     await q('postgres', `update students set total_plus = 7 where id = $1`, [ids['张三']])
@@ -228,6 +231,25 @@ describe('上课流程', () => {
     // 统计清零也重置 credits
     await q('anon', 'select reset_stats()')
     expect(await one<any>('postgres', `select credits from students where id = $1`, [ids['李四']])).toEqual({ credits: 5 })
+  })
+
+  it('安慰奖分档：+5~49 给 1 个，+50 以上给 2 个，不满 5 不给', async () => {
+    for (const [add, expected] of [[4, 0], [5, 1], [49, 1], [50, 2], [90, 2]] as const) {
+      await q('postgres', 'truncate students, lessons cascade')
+      const ids = await addStudents(['甲', '乙'])
+      const ta = await claim(ids['甲'])
+      const tb = await claim(ids['乙'])
+      const lesson = await startLesson()
+      await state(ta)
+      await state(tb)
+      const qid = await startQuestion(lesson)
+      await q('anon', `select set_weight($1, $2, $3)`, [ta, qid, 10 + add])
+      // 让乙权重最大，但仍可能抽到甲；只统计甲没被抽中的情况
+      await q('anon', `select set_weight($1, $2, 100)`, [tb, qid])
+      const r = await spin(qid)
+      const got = (await state(ta)).credits - 5
+      expect(got).toBe(r.winner_name === '甲' ? Math.floor(add / 5) : expected)
+    }
   })
 
   it('不在转盘上的人不能调权重（防止零风险刷 credits）', async () => {

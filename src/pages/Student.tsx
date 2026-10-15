@@ -120,7 +120,7 @@ function PickName({ onClaimed }: { onClaimed: (token: string) => void }) {
   )
 }
 
-const EARN_STEP = 5 // 加权每 5 赚 1 个 credit
+const EARN_STEP = 5 // 加权被抽中：每 5 赚 1 个 credit
 const ME_COLOR = '#e9473b'
 const OTHER_COLORS = ['#ededed', '#e0e0e0']
 
@@ -250,7 +250,7 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
         </span>
         <CreditsBadge
           credits={state.credits}
-          pending={q?.status === 'open' && q.is_candidate ? creditChange(myWeight - NORMAL_WEIGHT) : 0}
+          pending={q?.status === 'open' && q.is_candidate ? creditChange(myWeight - NORMAL_WEIGHT) : null}
         />
       </header>
 
@@ -335,14 +335,17 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
   )
 }
 
-function CreditsBadge({ credits, pending }: { credits: number; pending: number }) {
+function CreditsBadge({ credits, pending }: { credits: number; pending: CreditChange | null }) {
   return (
     <div className="credits" title="减权花 credits，加权赚 credits，转盘后结算">
       <span className="credits-num">{credits}</span>
       <span className="credits-label">credits</span>
-      {pending !== 0 && (
-        <span className={pending > 0 ? 'credits-pending up' : 'credits-pending down'}>
-          {pending > 0 ? `+${pending}` : pending}
+      {pending && pending.max !== 0 && (
+        <span
+          className={pending.max > 0 ? 'credits-pending up' : 'credits-pending down'}
+          title={pending.max > 0 ? '没抽中 / 抽中' : undefined}
+        >
+          {pending.max < 0 ? pending.max : pending.min === pending.max ? `+${pending.max}` : `+${pending.min}~${pending.max}`}
         </span>
       )}
     </div>
@@ -350,7 +353,17 @@ function CreditsBadge({ credits, pending }: { credits: number; pending: number }
 }
 
 /** 这题结束后 credits 的变化：加权每 5 赚 1 个（向下取整），减权每 1 花 1 个 */
-const creditChange = (delta: number) => (delta > 0 ? Math.floor(delta / EARN_STEP) : delta)
+type CreditChange = { min: number; max: number }
+
+/**
+ * 这题结束后 credits 的变化（和数据库 spin() 的规则一致）：
+ * 减权每 1 花 1 个；加权被抽中每 5 赚 1 个，没抽中给安慰奖（+5~49 给 1 个，+50 以上给 2 个）
+ */
+function creditChange(delta: number): CreditChange {
+  if (delta <= 0) return { min: delta, max: delta }
+  const consolation = delta >= 50 ? 2 : delta >= EARN_STEP ? 1 : 0
+  return { min: consolation, max: Math.floor(delta / EARN_STEP) }
+}
 
 function formatChance(p: number) {
   const pct = p * 100
