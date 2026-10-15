@@ -1,3 +1,10 @@
+export type ClassRow = {
+  id: string
+  name: string
+  join_code: string
+  created_at: string
+}
+
 export type StudentRow = {
   id: string
   name: string
@@ -32,6 +39,8 @@ export type StudentState =
       valid: true
       student_id: string
       student_name: string
+      class_id: string
+      class_name: string
       credits: number
       lesson_active: boolean
       question: null | {

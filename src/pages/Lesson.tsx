@@ -1,8 +1,8 @@
 import { QRCodeSVG } from 'qrcode.react'
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { SPIN_MS, Wheel, equalSlices } from '../components/Wheel'
-import { usePolling } from '../lib/hooks'
+import { useClass, usePolling } from '../lib/hooks'
 import { errorText, rpc, supabase } from '../lib/supabase'
 import type { LessonRow, TeacherLessonState } from '../lib/types'
 import { targetRotation } from '../lib/wheel'
@@ -13,6 +13,8 @@ type Phase = 'idle' | 'spinning' | 'result'
 const isToday = (iso: string) => new Date(iso).toDateString() === new Date().toDateString()
 
 export function Lesson() {
+  const { classId = '' } = useParams()
+  const cls = useClass(classId)
   const [lesson, setLesson] = useState<LessonRow | null | undefined>(undefined)
   const [st, setSt] = useState<TeacherLessonState | null>(null)
   const [phase, setPhase] = useState<Phase>('idle')
@@ -25,11 +27,16 @@ export function Lesson() {
   const [settledMsg, setSettledMsg] = useState(false)
 
   const loadLesson = useCallback(async () => {
-    const { data, error } = await supabase.from('lessons').select('*').is('settled_at', null).maybeSingle()
+    const { data, error } = await supabase
+      .from('lessons')
+      .select('*')
+      .eq('class_id', classId)
+      .is('settled_at', null)
+      .maybeSingle()
     if (error) return setError(errorText(error))
     setLesson(data)
     if (!data) setSt(null)
-  }, [])
+  }, [classId])
 
   useEffect(() => {
     loadLesson()
@@ -68,7 +75,7 @@ export function Lesson() {
 
   const startLesson = () =>
     act(async () => {
-      await rpc('start_lesson', { p_exclude_picked: false })
+      await rpc('start_lesson', { p_class_id: classId, p_exclude_picked: false })
       setSettledMsg(false)
       await loadLesson()
     })
@@ -166,9 +173,9 @@ export function Lesson() {
     return () => window.removeEventListener('keydown', onKey)
   })
 
-  if (lesson === undefined) return error ? <p className="error">{error}</p> : null
+  if (lesson === undefined || !cls) return error ? <p className="error">{error}</p> : null
 
-  const joinUrl = `${window.location.origin}/student`
+  const joinUrl = `${window.location.origin}/student/${cls.join_code}`
   const joinLabel = joinUrl.replace(/^https?:\/\//, '')
 
   if (!lesson) {
@@ -176,7 +183,7 @@ export function Lesson() {
       <div className="start">
         {settledMsg && (
           <p className="notice">
-            已结算 · <Link to="/teacher/stats">查看统计</Link>
+            已结算 · <Link to={`/teacher/${classId}/stats`}>查看统计</Link>
           </p>
         )}
         {error && <p className="error">{error}</p>}

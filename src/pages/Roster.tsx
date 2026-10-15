@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useClass } from '../lib/hooks'
 import { errorText, rpc, supabase } from '../lib/supabase'
 import type { StudentRow } from '../lib/types'
 
@@ -14,20 +16,24 @@ function parseNames(text: string): string[] {
 }
 
 export function Roster() {
+  const { classId = '' } = useParams()
+  const navigate = useNavigate()
+  const cls = useClass(classId)
+  const [className, setClassName] = useState<string | null>(null)
   const [students, setStudents] = useState<StudentRow[] | null>(null)
   const [paste, setPaste] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
   async function load() {
-    const { data, error } = await supabase.from('students').select(STUDENT_COLUMNS).order('seq')
+    const { data, error } = await supabase.from('students').select(STUDENT_COLUMNS).eq('class_id', classId).order('seq')
     if (error) return setError(errorText(error))
     setStudents(data)
   }
 
   useEffect(() => {
     load()
-  }, [])
+  }, [classId])
 
   async function run(action: () => PromiseLike<{ error: unknown } | void>, ok?: string) {
     setError('')
@@ -48,7 +54,7 @@ export function Roster() {
     const existing = new Set((students ?? []).map((s) => s.name))
     const fresh = names.filter((n) => !existing.has(n))
     await run(
-      () => supabase.from('students').insert(fresh.map((name) => ({ name }))),
+      () => supabase.from('students').insert(fresh.map((name) => ({ class_id: classId, name }))),
       fresh.length === names.length
         ? `已添加 ${fresh.length} 人`
         : `已添加 ${fresh.length} 人，跳过 ${names.length - fresh.length} 个重复名字`,
@@ -74,17 +80,34 @@ export function Roster() {
 
   async function releaseAll() {
     if (!window.confirm('让所有学生重新选名字？')) return
-    await run(() => rpc('release_all'), '已全部解绑')
+    await run(() => rpc('release_all', { p_class_id: classId }), '已全部解绑')
   }
 
   async function resetCredits() {
     if (!window.confirm('把所有人的 credits 复原为 5？')) return
-    await run(() => rpc('reset_credits'), '所有人的 credits 已复原为 5')
+    await run(() => rpc('reset_credits', { p_class_id: classId }), '所有人的 credits 已复原为 5')
+  }
+
+  async function renameClass() {
+    const current = className ?? cls?.name ?? ''
+    const name = window.prompt('班级名称', current)?.trim()
+    if (!name || name === current) return
+    await run(() => supabase.from('classes').update({ name }).eq('id', classId))
+    setClassName(name)
+  }
+
+  async function deleteClass() {
+    const current = className ?? cls?.name ?? ''
+    const typed = window.prompt(`删除班级会同时删除所有学生和统计，无法撤销。\n输入班级名称「${current}」确认：`)
+    if (typed?.trim() !== current) return
+    const { error } = await supabase.from('classes').delete().eq('id', classId)
+    if (error) return setError(errorText(error))
+    navigate('/teacher')
   }
 
   async function resetStats() {
     if (!window.confirm('把所有人的统计和 credits 清零？无法撤销。')) return
-    await run(() => rpc('reset_stats'), '统计已清零')
+    await run(() => rpc('reset_stats', { p_class_id: classId }), '统计已清零')
   }
 
   const pending = parseNames(paste).length
@@ -147,6 +170,15 @@ export function Roster() {
         </button>
         <button className="btn danger" onClick={resetStats}>
           统计清零
+        </button>
+      </footer>
+      <footer className="page-foot class-foot">
+        {cls && <span className="count">班级码 {cls.join_code}</span>}
+        <button className="btn" onClick={renameClass}>
+          改班级名
+        </button>
+        <button className="btn danger" onClick={deleteClass}>
+          删除班级
         </button>
       </footer>
     </>

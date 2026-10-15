@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { errorText, supabase } from '../lib/supabase'
 import type { StudentRow } from '../lib/types'
 
 type SortKey = 'seq' | 'plus' | 'minus' | 'net'
 
 export function Stats() {
+  const { classId = '' } = useParams()
   const [students, setStudents] = useState<StudentRow[] | null>(null)
   const [lastSettled, setLastSettled] = useState<string | null>(null)
   const [sort, setSort] = useState<SortKey>('net')
@@ -14,10 +16,11 @@ export function Stats() {
   useEffect(() => {
     ;(async () => {
       const [s, l] = await Promise.all([
-        supabase.from('students').select('id, name, seq, claimed, total_plus, total_minus'),
+        supabase.from('students').select('id, name, seq, claimed, total_plus, total_minus').eq('class_id', classId),
         supabase
           .from('lessons')
           .select('settled_at')
+          .eq('class_id', classId)
           .not('settled_at', 'is', null)
           .order('settled_at', { ascending: false })
           .limit(1),
@@ -27,7 +30,7 @@ export function Stats() {
       setStudents(s.data)
       setLastSettled(l.data[0]?.settled_at ?? null)
     })()
-  }, [])
+  }, [classId])
 
   const rows = useMemo(() => {
     const value = (s: StudentRow) =>

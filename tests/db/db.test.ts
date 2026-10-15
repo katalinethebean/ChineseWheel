@@ -21,10 +21,23 @@ async function one<T = Record<string, unknown>>(role: Role, sql: string, params:
   return (await q<T>(role, sql, params))[0]
 }
 
-/** 以老师身份（匿名）添加学生，返回 名字 → id */
-async function addStudents(names: string[]) {
-  for (const name of names) await q('anon', `insert into students (name) values ($1)`, [name])
-  const rows = await q<{ id: string; name: string }>('anon', `select id, name from students order by seq`)
+/** 每个测试默认用的班级（beforeEach 里重建） */
+let classId = ''
+
+async function createClass(name: string) {
+  return one<{ id: string; join_code: string }>('anon', `insert into classes (name) values ($1) returning id, join_code`, [name])
+}
+
+/** 清空所有数据，重建一个默认班级 */
+async function resetDb() {
+  await q('postgres', 'truncate classes, students, lessons cascade')
+  classId = (await createClass('测试班')).id
+}
+
+/** 以老师身份（匿名）往班级里添加学生，返回 名字 → id */
+async function addStudents(names: string[], cls = classId) {
+  for (const name of names) await q('anon', `insert into students (class_id, name) values ($1, $2)`, [cls, name])
+  const rows = await q<{ id: string; name: string }>('anon', `select id, name from students where class_id = $1 order by seq`, [cls])
   return Object.fromEntries(rows.map((s) => [s.name, s.id])) as Record<string, string>
 }
 
@@ -34,8 +47,8 @@ const state = async (token: string) =>
   (await one<{ s: any }>('anon', `select student_state($1) as s`, [token])).s
 const adjust = async (token: string, questionId: string, step: number) =>
   (await one<{ w: number }>('anon', `select adjust($1, $2, $3) as w`, [token, questionId, step])).w
-const startLesson = async (excludePicked = false) =>
-  (await one<{ id: string }>('anon', `select start_lesson($1) as id`, [excludePicked])).id
+const startLesson = async (excludePicked = false, cls = classId) =>
+  (await one<{ id: string }>('anon', `select start_lesson($1, $2) as id`, [cls, excludePicked])).id
 const startQuestion = async (lessonId: string) =>
   (await one<{ id: string }>('anon', `select start_question($1) as id`, [lessonId])).id
 const spin = async (questionId: string) =>
@@ -57,9 +70,7 @@ beforeAll(async () => {
   }
 })
 
-beforeEach(async () => {
-  await q('postgres', 'truncate students, lessons cascade')
-})
+beforeEach(resetDb)
 
 describe('权限', () => {
   it('任何人都不能直接读取单题调整', async () => {
@@ -225,17 +236,17 @@ describe('上课流程', () => {
 
     // credits 复原：所有人回到 5，统计不变
     await q('postgres', `update students set total_plus = 7 where id = $1`, [ids['张三']])
-    await q('anon', 'select reset_credits()')
+    await q('anon', 'select reset_credits($1)', [classId])
     expect(await one<any>('postgres', `select credits, total_plus from students where id = $1`, [ids['张三']])).toEqual({ credits: 5, total_plus: 7 })
 
     // 统计清零也重置 credits
-    await q('anon', 'select reset_stats()')
+    await q('anon', 'select reset_stats($1)', [classId])
     expect(await one<any>('postgres', `select credits from students where id = $1`, [ids['李四']])).toEqual({ credits: 5 })
   })
 
   it('安慰奖分档：+5~49 给 1 个，+50 以上给 2 个，不满 5 不给', async () => {
     for (const [add, expected] of [[4, 0], [5, 1], [49, 1], [50, 2], [90, 2]] as const) {
-      await q('postgres', 'truncate students, lessons cascade')
+      await resetDb()
       const ids = await addStudents(['甲', '乙'])
       const ta = await claim(ids['甲'])
       const tb = await claim(ids['乙'])
@@ -397,7 +408,7 @@ describe('下课结算', () => {
 
     const t2 = await claim(ids['李四'])
     await claim(ids['张三'])
-    await q('anon', `select release_all()`)
+    await q('anon', `select release_all($1)`, [classId])
     expect((await state(t2)).valid).toBe(false)
     expect(await claim(ids['李四'])).toBeTruthy()
   })
@@ -410,7 +421,53 @@ describe('下课结算', () => {
     await adjust(t1, qid, 1)
     await spin(qid)
     await settle(lesson)
-    await q('anon', `select reset_stats()`)
+    await q('anon', `select reset_stats($1)`, [classId])
     expect(await one<any>('anon', `select total_plus, total_minus from students`)).toEqual({ total_plus: 0, total_minus: 0 })
+  })
+})
+
+describe('多班级', () => {
+  it('每个班有不同的 6 位班级码；同名学生可以在不同班', async () => {
+    const other = await createClass('二班')
+    const mine = await one<any>('anon', 'select join_code from classes where id = $1', [classId])
+    expect(mine.join_code).toMatch(/^[A-Z2-9]{6}$/)
+    expect(other.join_code).not.toBe(mine.join_code)
+    await addStudents(['张三'])
+    await addStudents(['张三'], other.id)
+    await expect(q('anon', `insert into students (class_id, name) values ($1, '张三')`, [classId])).rejects.toThrow(/duplicate/)
+  })
+
+  it('两个班可以同时上课，互不影响：在场名单、结算解绑、统计清零只作用于本班', async () => {
+    const other = await createClass('二班')
+    const a = await addStudents(['甲'])
+    const b = await addStudents(['乙'], other.id)
+    const ta = await claim(a['甲'])
+    const tb = await claim(b['乙'])
+    const la = await startLesson()
+    const lb = await startLesson(false, other.id)
+    await state(ta)
+    await state(tb)
+
+    const sa = (await one<{ s: any }>('anon', 'select teacher_lesson_state($1) as s', [la])).s
+    expect(sa.students.map((s: any) => s.name)).toEqual(['甲'])
+    expect((await state(ta)).class_name).toBe('测试班')
+
+    for (let i = 0; i < 5; i++) expect((await spin(await startQuestion(lb))).winner_name).toBe('乙')
+
+    await settle(la)
+    expect((await state(ta)).valid).toBe(false)   // 一班解绑
+    expect((await state(tb)).valid).toBe(true)    // 二班不受影响
+
+    await q('postgres', 'update students set total_plus = 3, credits = 9')
+    await q('anon', 'select reset_stats($1)', [classId])
+    expect(await one<any>('postgres', 'select total_plus, credits from students where id = $1', [b['乙']])).toEqual({ total_plus: 3, credits: 9 })
+  })
+
+  it('删除班级会删除它的学生和课次', async () => {
+    await addStudents(['甲'])
+    await startLesson()
+    await q('anon', 'delete from classes where id = $1', [classId])
+    expect(await one<any>('postgres', 'select count(*)::int as n from students')).toEqual({ n: 0 })
+    expect(await one<any>('postgres', 'select count(*)::int as n from lessons')).toEqual({ n: 0 })
   })
 })

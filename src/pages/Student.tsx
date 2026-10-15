@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { Link, useParams } from 'react-router-dom'
 import { SPIN_MS, Wheel, type Slice } from '../components/Wheel'
 import { usePolling } from '../lib/hooks'
 import { errorText, rpc, supabase } from '../lib/supabase'
@@ -8,33 +9,36 @@ import { layoutArcs, targetRotationInArc } from '../lib/wheel'
 
 type RosterEntry = { id: string; name: string; claimed: boolean }
 
-const TOKEN_KEY = 'wheel_token'
+// 每个班级分开记住身份
+const tokenKey = (code: string) => `wheel_token_${code}`
 
-function readToken(): string | null {
+function readToken(code: string): string | null {
   try {
-    return localStorage.getItem(TOKEN_KEY)
+    return localStorage.getItem(tokenKey(code))
   } catch {
     return null
   }
 }
 
-function writeToken(token: string | null) {
+function writeToken(code: string, token: string | null) {
   try {
-    if (token) localStorage.setItem(TOKEN_KEY, token)
-    else localStorage.removeItem(TOKEN_KEY)
+    if (token) localStorage.setItem(tokenKey(code), token)
+    else localStorage.removeItem(tokenKey(code))
   } catch {
     // 隐私模式下可能无法保存，只是下次需要重新选名字
   }
 }
 
 export function Student() {
-  const [token, setToken] = useState<string | null>(() => readToken())
+  const code = (useParams().code ?? '').toUpperCase()
+  const [token, setToken] = useState<string | null>(() => readToken(code))
 
   if (!token) {
     return (
       <PickName
+        code={code}
         onClaimed={(t) => {
-          writeToken(t)
+          writeToken(code, t)
           setToken(t)
         }}
       />
@@ -44,24 +48,33 @@ export function Student() {
     <StudentView
       token={token}
       onInvalid={() => {
-        writeToken(null)
+        writeToken(code, null)
         setToken(null)
       }}
     />
   )
 }
 
-function PickName({ onClaimed }: { onClaimed: (token: string) => void }) {
-  const [roster, setRoster] = useState<RosterEntry[] | undefined>(undefined)
+function PickName({ code, onClaimed }: { code: string; onClaimed: (token: string) => void }) {
+  const [roster, setRoster] = useState<RosterEntry[] | null | undefined>(undefined)
+  const [className, setClassName] = useState('')
   const [chosen, setChosen] = useState<{ id: string; name: string } | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase.from('students').select('id, name, claimed').order('seq')
+    const c = await supabase.from('classes').select('id, name').eq('join_code', code).maybeSingle()
+    if (c.error) return setError(errorText(c.error))
+    if (!c.data) return setRoster(null)
+    setClassName(c.data.name)
+    const { data, error } = await supabase
+      .from('students')
+      .select('id, name, claimed')
+      .eq('class_id', c.data.id)
+      .order('seq')
     if (error) setError(errorText(error))
     else setRoster(data)
-  }, [])
+  }, [code])
 
   useEffect(() => {
     load()
@@ -83,6 +96,20 @@ function PickName({ onClaimed }: { onClaimed: (token: string) => void }) {
   }
 
   if (roster === undefined) return <div className="student">{error && <p className="error">{error}</p>}</div>
+  if (roster === null)
+    return (
+      <div className="student">
+        <header className="student-head">
+          <img className="logo" src="/logo.jpg" alt="硅雞科技" width={28} height={28} />
+        </header>
+        <div className="pick">
+          <h1>没有这个班级</h1>
+          <Link className="btn lg" to="/student">
+            重新输入班级码
+          </Link>
+        </div>
+      </div>
+    )
 
   return (
     <div className="student">
@@ -90,7 +117,10 @@ function PickName({ onClaimed }: { onClaimed: (token: string) => void }) {
         <img className="logo" src="/logo.jpg" alt="硅雞科技" width={28} height={28} />
       </header>
       <div className="pick">
-        <h1>你是谁？</h1>
+        <div className="pick-title">
+          <span className="count">{className}</span>
+          <h1>你是谁？</h1>
+        </div>
         {error && <p className="error">{error}</p>}
         {roster.length === 0 ? (
           <p className="muted">老师还没添加名单</p>
