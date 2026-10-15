@@ -12,13 +12,16 @@
   --soft: oklch(96% 0.01 25);
   --wheel-empty: oklch(95% 0.01 25);
 
-  /* 主色：中国红；辅色：金 */
-  --red: oklch(55% 0.19 28);
-  --red-deep: oklch(47% 0.17 28);
-  --red-soft: oklch(95% 0.03 28);
-  --gold: oklch(80% 0.14 80);
-  --gold-deep: oklch(70% 0.14 75);
-  --gold-ink: oklch(30% 0.06 70);
+  /* 主色：柔和的中国红；辅色：香槟金。饱和度都调低，偏简约 */
+  --red: oklch(55% 0.11 22);
+  --red-deep: oklch(47% 0.1 22);
+  --red-soft: oklch(95.5% 0.02 22);
+  --on-red: oklch(96.5% 0.018 15); /* 红底上的文字：非常淡的粉色，不用纯白 */
+  --on-red-dim: oklch(96.5% 0.018 15 / 0.75);
+  --on-red-line: oklch(96.5% 0.018 15 / 0.4);
+  --gold: oklch(88% 0.07 85);
+  --gold-deep: oklch(82% 0.08 82);
+  --gold-ink: oklch(32% 0.05 70);
 
   /* 转盘六色（和 Wheel.tsx 一致） */
   --c1: #e9473b;
@@ -1456,95 +1459,58 @@ a:has(> .brand-mark) {
   text-decoration: none;
 }
 
-/* ───────── 红金配色 ───────── */
+/* ───────── 红金配色（柔和） ───────── */
 
-/* 顶栏：中国红 */
+/* 顶栏：柔和的红，文字用很淡的粉色 */
 .topbar {
   background: var(--red);
   border-bottom: none;
-  color: #fff;
+  color: var(--on-red);
 }
 .topbar .brand-name,
 .topbar .class-switch {
-  color: #fff;
+  color: var(--on-red);
 }
 .topbar-left .class-switch {
-  border-left-color: oklch(100% 0 0 / 0.35);
+  border-left-color: var(--on-red-line);
 }
 .topbar .logo {
-  box-shadow: 0 0 0 2px oklch(100% 0 0 / 0.85);
+  box-shadow: 0 0 0 2px var(--on-red);
 }
 .topbar .tabs a {
-  color: oklch(100% 0 0 / 0.72);
+  color: var(--on-red-dim);
 }
 .topbar .tabs a:hover,
 .topbar .tabs a.active {
-  color: #fff;
+  color: var(--on-red);
 }
 .topbar .tabs a.active::after {
-  height: 3px;
+  height: 2px;
   bottom: -16px;
   background: var(--gold);
 }
 .topbar .account,
 .topbar-right > .btn-link {
-  color: oklch(100% 0 0 / 0.85);
+  color: var(--on-red-dim);
 }
 .topbar-right > .btn-link:hover {
-  color: #fff;
+  color: var(--on-red);
 }
 .leave-class {
   margin-left: 0.25rem;
   background: transparent;
-  border-color: oklch(100% 0 0 / 0.55);
-  color: #fff;
+  border-color: var(--on-red-line);
+  color: var(--on-red);
 }
 .leave-class:hover {
-  background: #fff;
-  border-color: #fff;
-  color: var(--red);
-}
-
-/* 首页：整页红色，金色「老师」、白色「学生」 */
-.home {
-  background: var(--red);
-  color: #fff;
-}
-.home .brand-name,
-.home-title {
-  color: #fff;
-}
-.home .logo {
-  box-shadow: 0 0 0 2px oklch(100% 0 0 / 0.85);
-}
-.home-choices .btn.primary {
-  background: var(--gold);
-  border-color: var(--gold);
-  color: var(--gold-ink);
-}
-.home-choices .btn.primary:hover {
-  background: var(--gold-deep);
-  border-color: var(--gold-deep);
-}
-.home-choices .btn:not(.primary) {
-  background: #fff;
-  border-color: #fff;
+  background: var(--on-red);
+  border-color: var(--on-red);
   color: var(--red-deep);
 }
-/* 红底上的转盘：白色外圈 + 白色指针，红色扇区才不会和背景混在一起 */
-.home-wheel .wheel {
-  border-radius: 50%;
-  box-shadow: 0 0 0 7px #fff, 0 10px 30px -8px oklch(30% 0.12 28 / 0.6);
-}
-.home-wheel .wheel-overlay circle:first-child {
-  stroke: #fff;
-}
-.home-wheel .wheel-pointer {
-  top: -9%;
-  filter: drop-shadow(0 2px 2px oklch(30% 0.12 28 / 0.5));
-}
-.home-wheel .wheel-pointer path {
-  fill: #fff;
+
+/* 首页：白底，公司名用柔和的红色 */
+.home .brand-name {
+  color: var(--red);
 }
 
 /* 登录页和学生端顶部：红色条 */
@@ -1554,11 +1520,11 @@ a:has(> .brand-mark) {
 }
 .login .brand-name,
 .student-head .brand-name {
-  color: #fff;
+  color: var(--on-red);
 }
 .login .logo,
 .student-head .logo {
-  box-shadow: 0 0 0 2px oklch(100% 0 0 / 0.85);
+  box-shadow: 0 0 0 2px var(--on-red);
 }
 .student-head {
   margin: -16px -20px 0;
@@ -1619,9 +1585,6 @@ textarea:focus {
 .join-code {
   color: var(--red-deep);
 }
-.side {
-  border-left-color: var(--line);
-}
 .chip.on {
   border-color: var(--line-strong);
   background: var(--surface);
@@ -1633,19 +1596,19 @@ textarea:focus {
   background: var(--red);
 }
 
-/* 抽中：整屏中国红，金色的「下一题」 */
+/* 抽中：整屏柔和的红，名字用淡粉，「下一题」是香槟金 */
 .overlay:has(.winner) {
   background: var(--red);
   backdrop-filter: none;
 }
 .winner-name {
-  color: #fff;
+  color: var(--on-red);
 }
 .winner-name::after {
   content: '';
   display: block;
   width: 72px;
-  height: 3px;
+  height: 2px;
   margin: 1.5rem auto 0;
   border-radius: 2px;
   background: var(--gold);
@@ -1672,6 +1635,7 @@ textarea:focus {
 .name-btn.selected {
   background: var(--red);
   border-color: var(--red);
+  color: var(--on-red);
 }
 .credits {
   padding: 0.2rem 0.7rem;
@@ -1695,14 +1659,18 @@ textarea:focus {
 }
 .result.me {
   background: var(--red);
-  color: #fff;
   border-radius: 14px;
   padding: 1.5rem 1rem;
 }
 .result.me .result-label,
 .result.me .result-name {
-  color: #fff;
+  color: var(--on-red);
 }
 .waiting {
   color: var(--red-deep);
+}
+
+/* 主按钮（红底）文字也用淡粉 */
+.btn.primary {
+  color: var(--on-red);
 }

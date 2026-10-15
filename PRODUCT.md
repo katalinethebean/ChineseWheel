@@ -15,7 +15,7 @@ A Chinese-language classroom name wheel where students can raise or lower their 
 
 ## Brand Personality
 
-Made by **Silicon Chicken Technologies (硅雞科技)** — company name in Impact next to the logo, top-left only. Premium minimal layout (white space, hairlines, typography for hierarchy) with **auspicious color**: 中国红 (vermilion) is the dominant brand color (top bars, primary buttons, the winner screen, the home page), gold is the accent (credits, secondary actions, active tab), neutrals are tinted toward red. Pure black/white/grey reads as funeral / 不吉利 to this audience and was explicitly rejected.
+Made by **Silicon Chicken Technologies (硅雞科技)** — company name in Impact next to the logo, top-left only. Premium minimal layout (white space, hairlines, typography for hierarchy) with **soft auspicious color**: a muted, low-chroma red (oklch 55% 0.11 22) for top bars, primary buttons and the winner screen; a pale champagne gold for credits, secondary actions and the active tab; neutrals tinted toward red. Text on red is a very pale pink, never pure white (white felt jarring). The home page stays white. Pure black/white/grey reads as funeral / 不吉利 and was rejected; fully saturated red/gold was rejected as ugly.
 
 ## Anti-references
 
