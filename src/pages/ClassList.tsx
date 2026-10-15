@@ -84,7 +84,7 @@ export function ClassList() {
 
       {classes && (
         <div className="class-grid">
-          {classes.map((c, i) => (
+          {classes.map((c) => (
             <div key={c.id} className="class-card">
               <Link to={`/teacher/${c.id}`} className="class-card-link">
                 <span className="class-card-name">{c.name}</span>
