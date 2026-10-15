@@ -150,7 +150,7 @@ function PickName({ code, onClaimed }: { code: string; onClaimed: (token: string
 
 const EARN_STEP = 5 // 加权被抽中：每 5 赚 1 个 credit
 const ME_COLOR = '#e9473b'
-const OTHER_COLORS = ['#ededed', '#e0e0e0']
+const OTHER_COLORS = ['#f4ecea', '#e9dedb']
 
 function StudentView({ token, onInvalid }: { token: string; onInvalid: () => void }) {
   const [state, setState] = useState<StudentState | null>(null)

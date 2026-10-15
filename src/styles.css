@@ -1,25 +1,35 @@
-/* ───────── 设计变量：黑白灰 · 留白 · 细线 ───────── */
+/* ───────── 设计变量：留白 · 细线 · 红金点缀（中国红代表吉利） ───────── */
 
 :root {
-  --bg: #ffffff;
-  --ink: #1a1a1a;
-  --muted: #6b6b6b;
-  --faint: #a3a3a3;
-  --line: #e6e6e6;
-  --line-strong: #cfcfcf;
-  --soft: #f4f4f4;
-  --wheel-empty: #f2f2f2;
+  /* 中性色都微微偏向红色，不是纯黑白灰 */
+  --bg: oklch(98.6% 0.006 25);
+  --surface: oklch(100% 0 0);
+  --ink: oklch(23% 0.02 25);
+  --muted: oklch(47% 0.025 25);
+  --faint: oklch(66% 0.02 25);
+  --line: oklch(91.5% 0.012 25);
+  --line-strong: oklch(84% 0.016 25);
+  --soft: oklch(96% 0.01 25);
+  --wheel-empty: oklch(95% 0.01 25);
 
-  /* 转盘六色（和 Wheel.tsx 一致）；--accent 是界面里唯一的点缀色 */
+  /* 主色：中国红；辅色：金 */
+  --red: oklch(55% 0.19 28);
+  --red-deep: oklch(47% 0.17 28);
+  --red-soft: oklch(95% 0.03 28);
+  --gold: oklch(80% 0.14 80);
+  --gold-deep: oklch(70% 0.14 75);
+  --gold-ink: oklch(30% 0.06 70);
+
+  /* 转盘六色（和 Wheel.tsx 一致） */
   --c1: #e9473b;
   --c2: #f5b700;
   --c3: #009b6e;
   --c4: #2f6bff;
   --c5: #8b5cf6;
   --c6: #ff8fa3;
-  --accent: var(--c1);
-  --good: #00805b;
-  --bad: #c9362b;
+  --accent: var(--red);
+  --good: oklch(50% 0.12 160);
+  --bad: var(--red-deep);
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --z-sticky: 20;
@@ -93,7 +103,7 @@ a {
 }
 
 :focus-visible {
-  outline: 2px solid var(--ink);
+  outline: 2px solid var(--red);
   outline-offset: 3px;
 }
 
@@ -143,7 +153,7 @@ textarea {
   -webkit-tap-highlight-color: transparent;
 }
 .btn:hover {
-  border-color: var(--ink);
+  border-color: var(--red);
 }
 .btn:active:not(:disabled) {
   opacity: 0.7;
@@ -153,12 +163,22 @@ textarea {
   cursor: not-allowed;
 }
 .btn.primary {
-  background: var(--ink);
-  border-color: var(--ink);
+  background: var(--red);
+  border-color: var(--red);
   color: #fff;
 }
 .btn.primary:hover {
-  background: #000;
+  background: var(--red-deep);
+  border-color: var(--red-deep);
+}
+.btn.gold {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--gold-ink);
+}
+.btn.gold:hover {
+  background: var(--gold-deep);
+  border-color: var(--gold-deep);
 }
 .btn.ghost {
   border-color: transparent;
@@ -1434,4 +1454,255 @@ textarea {
 }
 a:has(> .brand-mark) {
   text-decoration: none;
+}
+
+/* ───────── 红金配色 ───────── */
+
+/* 顶栏：中国红 */
+.topbar {
+  background: var(--red);
+  border-bottom: none;
+  color: #fff;
+}
+.topbar .brand-name,
+.topbar .class-switch {
+  color: #fff;
+}
+.topbar-left .class-switch {
+  border-left-color: oklch(100% 0 0 / 0.35);
+}
+.topbar .logo {
+  box-shadow: 0 0 0 2px oklch(100% 0 0 / 0.85);
+}
+.topbar .tabs a {
+  color: oklch(100% 0 0 / 0.72);
+}
+.topbar .tabs a:hover,
+.topbar .tabs a.active {
+  color: #fff;
+}
+.topbar .tabs a.active::after {
+  height: 3px;
+  bottom: -16px;
+  background: var(--gold);
+}
+.topbar .account,
+.topbar-right > .btn-link {
+  color: oklch(100% 0 0 / 0.85);
+}
+.topbar-right > .btn-link:hover {
+  color: #fff;
+}
+.leave-class {
+  margin-left: 0.25rem;
+  background: transparent;
+  border-color: oklch(100% 0 0 / 0.55);
+  color: #fff;
+}
+.leave-class:hover {
+  background: #fff;
+  border-color: #fff;
+  color: var(--red);
+}
+
+/* 首页：整页红色，金色「老师」、白色「学生」 */
+.home {
+  background: var(--red);
+  color: #fff;
+}
+.home .brand-name,
+.home-title {
+  color: #fff;
+}
+.home .logo {
+  box-shadow: 0 0 0 2px oklch(100% 0 0 / 0.85);
+}
+.home-choices .btn.primary {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--gold-ink);
+}
+.home-choices .btn.primary:hover {
+  background: var(--gold-deep);
+  border-color: var(--gold-deep);
+}
+.home-choices .btn:not(.primary) {
+  background: #fff;
+  border-color: #fff;
+  color: var(--red-deep);
+}
+/* 红底上的转盘：白色外圈 + 白色指针，红色扇区才不会和背景混在一起 */
+.home-wheel .wheel {
+  border-radius: 50%;
+  box-shadow: 0 0 0 7px #fff, 0 10px 30px -8px oklch(30% 0.12 28 / 0.6);
+}
+.home-wheel .wheel-overlay circle:first-child {
+  stroke: #fff;
+}
+.home-wheel .wheel-pointer {
+  top: -9%;
+  filter: drop-shadow(0 2px 2px oklch(30% 0.12 28 / 0.5));
+}
+.home-wheel .wheel-pointer path {
+  fill: #fff;
+}
+
+/* 登录页和学生端顶部：红色条 */
+.login .home-head,
+.student-head {
+  background: var(--red);
+}
+.login .brand-name,
+.student-head .brand-name {
+  color: #fff;
+}
+.login .logo,
+.student-head .logo {
+  box-shadow: 0 0 0 2px oklch(100% 0 0 / 0.85);
+}
+.student-head {
+  margin: -16px -20px 0;
+  padding: 12px 20px;
+}
+.login-form h1,
+.join-class h1,
+.pick h1 {
+  color: var(--red-deep);
+}
+
+/* 输入框聚焦：红色下划线 */
+input:focus,
+textarea:focus {
+  border-color: var(--red);
+}
+
+/* 班级卡片 */
+.class-card {
+  background: var(--surface);
+  border-color: var(--line);
+}
+.class-card:hover {
+  border-color: var(--red);
+}
+.class-card-dot {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-bottom: 0.9rem;
+  border-radius: 50%;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.class-card-link {
+  justify-content: flex-start;
+}
+.class-card-meta {
+  margin-top: auto;
+}
+.class-card-code {
+  color: var(--red-deep);
+}
+.class-card.add {
+  border-color: var(--line-strong);
+  color: var(--red-deep);
+}
+.class-card.add:hover {
+  border-color: var(--red);
+  background: var(--red-soft);
+}
+.class-card.new {
+  border-color: var(--red);
+}
+
+/* 上课页 */
+.join-code {
+  color: var(--red-deep);
+}
+.side {
+  border-left-color: var(--line);
+}
+.chip.on {
+  border-color: var(--line-strong);
+  background: var(--surface);
+}
+.chip.on:hover {
+  border-color: var(--red);
+}
+.switch input:checked + .switch-track {
+  background: var(--red);
+}
+
+/* 抽中：整屏中国红，金色的「下一题」 */
+.overlay:has(.winner) {
+  background: var(--red);
+  backdrop-filter: none;
+}
+.winner-name {
+  color: #fff;
+}
+.winner-name::after {
+  content: '';
+  display: block;
+  width: 72px;
+  height: 3px;
+  margin: 1.5rem auto 0;
+  border-radius: 2px;
+  background: var(--gold);
+}
+
+/* 名单 / 统计 */
+.joined-dot {
+  background: var(--good);
+}
+.stats th {
+  border-bottom-color: var(--red);
+}
+.sort.active {
+  color: var(--red-deep);
+}
+.bar.minus {
+  background: var(--red);
+}
+
+/* 学生端 */
+.name-btn {
+  background: var(--surface);
+}
+.name-btn.selected {
+  background: var(--red);
+  border-color: var(--red);
+}
+.credits {
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--gold-ink);
+}
+.credits .credits-label {
+  color: var(--gold-ink);
+}
+.credits-pending,
+.credits-pending.up {
+  color: var(--gold-ink);
+  font-weight: 600;
+}
+.credits-pending.down {
+  color: var(--red-deep);
+}
+.slider-normal {
+  border-color: var(--gold-deep);
+}
+.result.me {
+  background: var(--red);
+  color: #fff;
+  border-radius: 14px;
+  padding: 1.5rem 1rem;
+}
+.result.me .result-label,
+.result.me .result-name {
+  color: #fff;
+}
+.waiting {
+  color: var(--red-deep);
 }

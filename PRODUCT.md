@@ -15,7 +15,7 @@ A Chinese-language classroom name wheel where students can raise or lower their 
 
 ## Brand Personality
 
-Made by **Silicon Chicken Technologies (硅雞科技)**. Premium and minimal (高级简约): white space, hairline dividers, black type; color lives in the wheel and one red accent (chance, slider, winner) — an all-grey version read as "like someone died", typography carries the hierarchy (light large numerals, small tracked labels). No decoration. The company logo appears **only** as a small mark in the top-left corner of each page — never in the wheel, buttons, or content.
+Made by **Silicon Chicken Technologies (硅雞科技)** — company name in Impact next to the logo, top-left only. Premium minimal layout (white space, hairlines, typography for hierarchy) with **auspicious color**: 中国红 (vermilion) is the dominant brand color (top bars, primary buttons, the winner screen, the home page), gold is the accent (credits, secondary actions, active tab), neutrals are tinted toward red. Pure black/white/grey reads as funeral / 不吉利 to this audience and was explicitly rejected.
 
 ## Anti-references
 

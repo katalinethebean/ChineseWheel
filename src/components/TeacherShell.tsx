@@ -28,10 +28,12 @@ function Shell({ children, fit, email }: { children: ReactNode; fit: boolean; em
           <Link to="/" className="brand">
             <Brand />
           </Link>
-          <Link to="/teacher" className="class-switch" title="切换班级">
-            {classId ? (cls?.name ?? '') : '课堂转盘'}
-            {classId && <span aria-hidden> ▾</span>}
-          </Link>
+          <span className="class-switch">{classId ? (cls?.name ?? '') : '课堂转盘'}</span>
+          {classId && (
+            <Link to="/teacher" className="btn sm leave-class">
+              退出班级
+            </Link>
+          )}
         </div>
         <div className="topbar-right">
           {classId && (
@@ -45,7 +47,7 @@ function Shell({ children, fit, email }: { children: ReactNode; fit: boolean; em
           )}
           {!classId && <span className="account">{email}</span>}
           <button className="btn-link" onClick={() => supabase.auth.signOut()}>
-            退出
+            退出登录
           </button>
         </div>
       </header>

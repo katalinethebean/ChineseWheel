@@ -233,7 +233,7 @@ export function Lesson() {
                 </button>
               </>
             ) : (
-              <button className="btn xl" onClick={newQuestion} disabled={busy || phase === 'spinning'}>
+              <button className="btn gold xl" onClick={newQuestion} disabled={busy || phase === 'spinning'}>
                 开始新题<kbd>回车</kbd>
               </button>
             )}
@@ -299,7 +299,7 @@ export function Lesson() {
         <div className="overlay" onClick={closeResult}>
           <div className="winner" onClick={(e) => e.stopPropagation()}>
             <p className="winner-name">{winner.name}</p>
-            <button className="btn lg" onClick={newQuestion} autoFocus>
+            <button className="btn gold lg" onClick={newQuestion} autoFocus>
               下一题
             </button>
           </div>

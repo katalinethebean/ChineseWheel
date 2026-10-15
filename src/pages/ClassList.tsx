@@ -6,6 +6,10 @@ import type { ClassRow } from '../lib/types'
 
 type ClassWithCount = ClassRow & { count: number }
 
+// 每个班卡片左上角的色块，和转盘的六色轮流
+const CARD_COLORS = ['var(--c1)', 'var(--c4)', 'var(--c3)', 'var(--c5)', 'var(--c2)', 'var(--c6)']
+const CARD_TEXT = ['#fff', '#fff', '#fff', '#fff', 'var(--gold-ink)', 'var(--gold-ink)']
+
 export function ClassList() {
   const navigate = useNavigate()
   const [classes, setClasses] = useState<ClassWithCount[] | null>(null)
@@ -83,9 +87,16 @@ export function ClassList() {
 
       {classes && (
         <div className="class-grid">
-          {classes.map((c) => (
+          {classes.map((c, i) => (
             <div key={c.id} className="class-card">
               <Link to={`/teacher/${c.id}`} className="class-card-link">
+                <span
+                  className="class-card-dot"
+                  style={{ background: CARD_COLORS[i % 6], color: CARD_TEXT[i % 6] }}
+                  aria-hidden
+                >
+                  {[...c.name][0]}
+                </span>
                 <span className="class-card-name">{c.name}</span>
                 <span className="class-card-meta">
                   <span className="class-card-code">{c.join_code}</span>
