@@ -77,6 +77,11 @@ export function Roster() {
     await run(() => rpc('release_all'), '已全部解绑')
   }
 
+  async function resetCredits() {
+    if (!window.confirm('把所有人的 credits 复原为 5？')) return
+    await run(() => rpc('reset_credits'), '所有人的 credits 已复原为 5')
+  }
+
   async function resetStats() {
     if (!window.confirm('把所有人的统计和 credits 清零？无法撤销。')) return
     await run(() => rpc('reset_stats'), '统计已清零')
@@ -136,6 +141,9 @@ export function Roster() {
       <footer className="page-foot">
         <button className="btn ghost" onClick={releaseAll}>
           全部解绑
+        </button>
+        <button className="btn ghost" onClick={resetCredits}>
+          credits 复原
         </button>
         <button className="btn ghost danger" onClick={resetStats}>
           统计清零

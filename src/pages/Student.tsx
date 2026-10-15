@@ -3,6 +3,7 @@ import { SPIN_MS, Wheel, type Slice } from '../components/Wheel'
 import { usePolling } from '../lib/hooks'
 import { errorText, rpc, supabase } from '../lib/supabase'
 import type { StudentState } from '../lib/types'
+import { MIN_WEIGHT, NORMAL_WEIGHT, SLIDER_MAX, pct, posOf, weightAt } from '../lib/slider'
 import { layoutArcs, targetRotationInArc } from '../lib/wheel'
 
 type RosterEntry = { id: string; name: string; claimed: boolean }
@@ -119,9 +120,7 @@ function PickName({ onClaimed }: { onClaimed: (token: string) => void }) {
   )
 }
 
-const MIN_WEIGHT = 1
-const MAX_WEIGHT = 30
-const NORMAL_WEIGHT = 10
+const EARN_STEP = 5 // 加权每 5 赚 1 个 credit
 const ME_COLOR = '#e9473b'
 const OTHER_COLORS = ['#ededed', '#e0e0e0']
 
@@ -251,7 +250,7 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
         </span>
         <CreditsBadge
           credits={state.credits}
-          pending={q?.status === 'open' && q.is_candidate ? myWeight - NORMAL_WEIGHT : 0}
+          pending={q?.status === 'open' && q.is_candidate ? creditChange(myWeight - NORMAL_WEIGHT) : 0}
         />
       </header>
 
@@ -288,11 +287,11 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
               <div className="slider">
                 <input
                   type="range"
-                  min={MIN_WEIGHT}
-                  max={MAX_WEIGHT}
+                  min={0}
+                  max={SLIDER_MAX}
                   step={1}
-                  value={myWeight}
-                  onChange={(e) => changeWeight(Number(e.target.value))}
+                  value={posOf(myWeight)}
+                  onChange={(e) => changeWeight(weightAt(Number(e.target.value)))}
                   disabled={!q.is_candidate}
                   aria-label="我的权重"
                   aria-valuetext={`权重 ${myWeight}`}
@@ -350,7 +349,8 @@ function CreditsBadge({ credits, pending }: { credits: number; pending: number }
   )
 }
 
-const pct = (w: number) => ((w - MIN_WEIGHT) / (MAX_WEIGHT - MIN_WEIGHT)) * 100
+/** 这题结束后 credits 的变化：加权每 5 赚 1 个（向下取整），减权每 1 花 1 个 */
+const creditChange = (delta: number) => (delta > 0 ? Math.floor(delta / EARN_STEP) : delta)
 
 function formatChance(p: number) {
   const pct = p * 100

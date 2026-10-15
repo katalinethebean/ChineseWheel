@@ -159,7 +159,7 @@ describe('上课流程', () => {
     }
   })
 
-  it('滑块直接设置权重（1–30），加减按钮也不会超过 30', async () => {
+  it('滑块直接设置权重（1–100），加减按钮也不会超过 100', async () => {
     const ids = await addStudents(['张三'])
     const t1 = await claim(ids['张三'])
     const lesson = await startLesson()
@@ -169,15 +169,15 @@ describe('上课流程', () => {
     expect(await setW(25)).toBe(25)
     expect(await setW(5)).toBe(5)
     expect((await state(t1)).question.weight).toBe(5)
-    await expect(setW(0)).rejects.toThrow(/1 到 30/)
-    await expect(setW(31)).rejects.toThrow(/1 到 30/)
-    await setW(30)
-    expect(await adjust(t1, qid, 1)).toBe(30)
+    await expect(setW(0)).rejects.toThrow(/1 到 100/)
+    await expect(setW(101)).rejects.toThrow(/1 到 100/)
+    await setW(100)
+    expect(await adjust(t1, qid, 1)).toBe(100)
     await spin(qid)
     await expect(setW(10)).rejects.toThrow(/已经结束/)
   })
 
-  it('credits：初始 5 个，减权花、加权赚，转盘后才生效，不能小于 0', async () => {
+  it('credits：初始 5 个，减 1 花 1 个、加 5 赚 1 个，转盘后才生效，不能小于 0', async () => {
     const ids = await addStudents(['张三', '李四'])
     const t1 = await claim(ids['张三'])
     const t2 = await claim(ids['李四'])
@@ -190,31 +190,40 @@ describe('上课流程', () => {
     expect(await credits(t1)).toBe(5)
     await expect(q('anon', 'select credits from students')).rejects.toThrow(/permission denied/)
 
-    // 第一题：张三减 5（用光），李四加 3
+    // 第一题：张三减 5（用光），李四加 14（赚 2 个，向下取整）
     let qid = await startQuestion(lesson)
     expect((await state(t1)).question.min_weight).toBe(5)
     await expect(setW(t1, qid, 4)).rejects.toThrow(/credits 不够，最多只能减到 5/)
     await setW(t1, qid, 5)
-    await setW(t2, qid, 13)
+    await setW(t2, qid, 24)
     expect(await credits(t1)).toBe(5)   // 转盘前不变
     await spin(qid)
     expect(await credits(t1)).toBe(0)
-    expect(await credits(t2)).toBe(8)
+    expect(await credits(t2)).toBe(7)
 
     // 第二题：张三 credits 为 0，不能减，只能加
     qid = await startQuestion(lesson)
     expect((await state(t1)).question.min_weight).toBe(10)
     await expect(setW(t1, qid, 9)).rejects.toThrow(/credits 不够/)
     expect(await adjust(t1, qid, -1)).toBe(10)
-    await setW(t1, qid, 12)
+    await setW(t1, qid, 14)   // +4：不够 5，不赚
     await spin(qid)
-    expect(await credits(t1)).toBe(2)
+    expect(await credits(t1)).toBe(0)
+    qid = await startQuestion(lesson)
+    await setW(t1, qid, 25)   // +15：赚 3 个
+    await spin(qid)
+    expect(await credits(t1)).toBe(3)
 
     // 没转就下课：不算
     qid = await startQuestion(lesson)
-    await setW(t1, qid, 30)
+    await setW(t1, qid, 100)
     await settle(lesson)
-    expect(await one<any>('postgres', `select credits from students where id = $1`, [ids['张三']])).toEqual({ credits: 2 })
+    expect(await one<any>('postgres', `select credits from students where id = $1`, [ids['张三']])).toEqual({ credits: 3 })
+
+    // credits 复原：所有人回到 5，统计不变
+    await q('postgres', `update students set total_plus = 7 where id = $1`, [ids['张三']])
+    await q('anon', 'select reset_credits()')
+    expect(await one<any>('postgres', `select credits, total_plus from students where id = $1`, [ids['张三']])).toEqual({ credits: 5, total_plus: 7 })
 
     // 统计清零也重置 credits
     await q('anon', 'select reset_stats()')
@@ -330,7 +339,7 @@ describe('下课结算', () => {
 
     const q2 = await startQuestion(lesson)
     await adjustTimes(t1, q2, 1, 6)      // 张三 +6
-    await adjustTimes(t2, q2, -1, 12)    // 李四 -9（到底，权重 1）
+    await adjustTimes(t2, q2, -1, 12)    // 李四只有 5 个 credits（+4 不够赚），最多 -5
     await spin(q2)
 
     const q3 = await startQuestion(lesson)
@@ -345,7 +354,7 @@ describe('下课结算', () => {
     const rows = await q<any>('anon', `select name, total_plus, total_minus from students order by seq`)
     expect(rows).toEqual([
       { name: '张三', total_plus: 6, total_minus: -2 },
-      { name: '李四', total_plus: 4, total_minus: -9 },
+      { name: '李四', total_plus: 4, total_minus: -5 },
     ])
 
     const left = await one<{ n: number }>('postgres', `select count(*)::int as n from adjustments`)
