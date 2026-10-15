@@ -1134,33 +1134,6 @@ textarea {
   color: var(--ink);
 }
 
-.class-list {
-  list-style: none;
-  margin: 0 0 2.5rem;
-  padding: 0;
-  border-top: 1px solid var(--line);
-}
-.class-list a {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding: 1.1rem 0;
-  border-bottom: 1px solid var(--line);
-  text-decoration: none;
-  transition: padding 0.2s var(--ease-out);
-}
-.class-list a:hover {
-  padding-left: 0.5rem;
-}
-.class-name {
-  font-size: 1.15rem;
-}
-.class-list .count {
-  letter-spacing: 0.12em;
-}
-.new-class {
-  align-items: center;
-}
 
 .class-foot {
   margin-top: 1rem;
@@ -1226,16 +1199,128 @@ textarea {
   border-bottom: 1px solid var(--ink);
 }
 
-.class-list li {
+
+/* ───────── 班级卡片 ───────── */
+
+.container:has(.class-grid) {
+  max-width: 1040px;
+}
+.class-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 1rem;
+}
+.class-card {
+  position: relative;
+  min-height: 150px;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: var(--bg);
+  transition: border-color 0.15s, transform 0.2s var(--ease-out);
+}
+.class-card:hover {
+  border-color: var(--ink);
+}
+.class-card-link {
+  position: absolute;
+  inset: 0;
   display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  border-bottom: 1px solid var(--line);
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.25rem 1.25rem 1.1rem;
+  text-decoration: none;
 }
-.class-list li a {
-  flex: 1;
-  border-bottom: none;
+.class-card-name {
+  font-size: 1.3rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  padding-right: 2.5rem;
+  overflow-wrap: anywhere;
 }
-.class-list .btn-link {
+.class-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
   font-size: 0.85rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.class-card-code {
+  letter-spacing: 0.18em;
+  color: var(--ink);
+}
+.class-card-rename {
+  position: absolute;
+  top: 1.1rem;
+  right: 1.1rem;
+  font-size: 0.8rem;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.class-card:hover .class-card-rename,
+.class-card-rename:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .class-card-rename {
+    opacity: 1;
+  }
+}
+
+.class-card.add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font: inherit;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  border-style: dashed;
+  cursor: pointer;
+}
+.class-card.add:hover {
+  color: var(--ink);
+}
+.class-card.add .plus {
+  font-size: 1.75rem;
+  font-weight: 200;
+  line-height: 1;
+}
+.class-card.new {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.1rem 1.25rem;
+  border-color: var(--ink);
+}
+.class-card.new input {
+  font-size: 1.2rem;
+}
+.class-card.new .row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+/* 二维码下的班级码 */
+.join-code {
+  font-size: 1.75rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.join-code.big {
+  margin: 1.5rem 0 0;
+  font-size: 3.5rem;
+  font-weight: 400;
+  letter-spacing: 0.3em;
+  text-align: center;
+  padding-left: 0.3em;
+}
+.qr-big .join-url.big {
+  margin-top: 0.5rem;
+  font-size: 1.1rem;
+  color: var(--muted);
 }

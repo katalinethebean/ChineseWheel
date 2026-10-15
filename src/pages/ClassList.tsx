@@ -4,19 +4,28 @@ import { renameClass } from '../lib/hooks'
 import { errorText, supabase } from '../lib/supabase'
 import type { ClassRow } from '../lib/types'
 
+type ClassWithCount = ClassRow & { count: number }
+
 export function ClassList() {
   const navigate = useNavigate()
-  const [classes, setClasses] = useState<ClassRow[] | null>(null)
+  const [classes, setClasses] = useState<ClassWithCount[] | null>(null)
+  const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    supabase
-      .from('classes')
-      .select('*')
-      .order('created_at')
-      .then(({ data, error }) => (error ? setError(errorText(error)) : setClasses(data)))
+    ;(async () => {
+      const [c, s] = await Promise.all([
+        supabase.from('classes').select('*').order('created_at'),
+        supabase.from('students').select('class_id'),
+      ])
+      const err = c.error || s.error
+      if (err) return setError(errorText(err))
+      const counts = new Map<string, number>()
+      for (const { class_id } of s.data) counts.set(class_id, (counts.get(class_id) ?? 0) + 1)
+      setClasses(c.data.map((cls) => ({ ...cls, count: counts.get(cls.id) ?? 0 })))
+    })()
   }, [])
 
   async function rename(c: ClassRow) {
@@ -48,28 +57,53 @@ export function ClassList() {
 
       {error && <p className="error">{error}</p>}
 
-      {classes && classes.length > 0 && (
-        <ul className="class-list">
+      {classes && (
+        <div className="class-grid">
           {classes.map((c) => (
-            <li key={c.id}>
-              <Link to={`/teacher/${c.id}`}>
-                <span className="class-name">{c.name}</span>
-                <span className="count">{c.join_code}</span>
+            <div key={c.id} className="class-card">
+              <Link to={`/teacher/${c.id}`} className="class-card-link">
+                <span className="class-card-name">{c.name}</span>
+                <span className="class-card-meta">
+                  <span className="class-card-code">{c.join_code}</span>
+                  <span>{c.count} 人</span>
+                </span>
               </Link>
-              <button className="btn-link" onClick={() => rename(c)}>
+              <button className="btn-link class-card-rename" onClick={() => rename(c)}>
                 改名
               </button>
-            </li>
+            </div>
           ))}
-        </ul>
-      )}
 
-      <form className="add-names new-class" onSubmit={create}>
-        <input placeholder="新班级名称" value={name} onChange={(e) => setName(e.target.value)} aria-label="新班级名称" />
-        <button className="btn primary" disabled={!name.trim() || busy}>
-          新建
-        </button>
-      </form>
+          {adding ? (
+            <form className="class-card new" onSubmit={create}>
+              <input
+                placeholder="班级名称"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Escape' && (setAdding(false), setName(''))}
+                aria-label="新班级名称"
+                autoFocus
+                maxLength={40}
+              />
+              <div className="row">
+                <button type="button" className="btn ghost sm" onClick={() => (setAdding(false), setName(''))}>
+                  取消
+                </button>
+                <button className="btn primary sm" disabled={!name.trim() || busy}>
+                  创建
+                </button>
+              </div>
+            </form>
+          ) : (
+            <button className="class-card add" onClick={() => setAdding(true)}>
+              <span className="plus" aria-hidden>
+                +
+              </span>
+              新建班级
+            </button>
+          )}
+        </div>
+      )}
     </>
   )
 }

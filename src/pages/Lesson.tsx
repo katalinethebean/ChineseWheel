@@ -176,7 +176,6 @@ export function Lesson() {
   if (lesson === undefined || !cls) return error ? <p className="error">{error}</p> : null
 
   const joinUrl = `${window.location.origin}/student/${cls.join_code}`
-  const joinLabel = joinUrl.replace(/^https?:\/\//, '')
 
   if (!lesson) {
     return (
@@ -244,7 +243,10 @@ export function Lesson() {
         <aside className="side">
           <button className="join" onClick={() => setBigQr(true)} title="放大">
             <QRCodeSVG value={joinUrl} size={112} marginSize={0} />
-            <span className="join-url">{joinLabel}</span>
+            <span className="join-code" aria-label={`班级码 ${cls.join_code}`}>
+              {cls.join_code}
+            </span>
+            <span className="join-url">{window.location.host}/student</span>
           </button>
 
           <section className="side-block">
@@ -308,7 +310,8 @@ export function Lesson() {
         <div className="overlay" onClick={() => setBigQr(false)}>
           <div className="qr-big" onClick={(e) => e.stopPropagation()}>
             <QRCodeSVG value={joinUrl} size={400} marginSize={0} />
-            <p className="join-url big">{joinLabel}</p>
+            <p className="join-code big">{cls.join_code}</p>
+            <p className="join-url big">{window.location.host}/student</p>
           </div>
         </div>
       )}
