@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { renameClass } from '../lib/hooks'
 import { errorText, supabase } from '../lib/supabase'
 import type { ClassRow } from '../lib/types'
 
@@ -17,6 +18,17 @@ export function ClassList() {
       .order('created_at')
       .then(({ data, error }) => (error ? setError(errorText(error)) : setClasses(data)))
   }, [])
+
+  async function rename(c: ClassRow) {
+    const name = window.prompt('班级名称', c.name)?.trim()
+    if (!name || name === c.name) return
+    try {
+      await renameClass(c.id, name)
+      setClasses((list) => list && list.map((x) => (x.id === c.id ? { ...x, name } : x)))
+    } catch (e) {
+      setError(errorText(e))
+    }
+  }
 
   async function create(e: FormEvent) {
     e.preventDefault()
@@ -44,6 +56,9 @@ export function ClassList() {
                 <span className="class-name">{c.name}</span>
                 <span className="count">{c.join_code}</span>
               </Link>
+              <button className="btn-link" onClick={() => rename(c)}>
+                改名
+              </button>
             </li>
           ))}
         </ul>

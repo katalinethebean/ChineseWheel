@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type KeyboardEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useClass } from '../lib/hooks'
+import { renameClass, useClass } from '../lib/hooks'
 import { errorText, rpc, supabase } from '../lib/supabase'
 import type { StudentRow } from '../lib/types'
 
@@ -19,7 +19,7 @@ export function Roster() {
   const { classId = '' } = useParams()
   const navigate = useNavigate()
   const cls = useClass(classId)
-  const [className, setClassName] = useState<string | null>(null)
+  const [nameDraft, setNameDraft] = useState<string | null>(null)
   const [students, setStudents] = useState<StudentRow[] | null>(null)
   const [paste, setPaste] = useState('')
   const [error, setError] = useState('')
@@ -88,16 +88,29 @@ export function Roster() {
     await run(() => rpc('reset_credits', { p_class_id: classId }), '所有人的 credits 已复原为 5')
   }
 
-  async function renameClass() {
-    const current = className ?? cls?.name ?? ''
-    const name = window.prompt('班级名称', current)?.trim()
-    if (!name || name === current) return
-    await run(() => supabase.from('classes').update({ name }).eq('id', classId))
-    setClassName(name)
+  async function saveName() {
+    const name = nameDraft?.trim()
+    setNameDraft(null)
+    if (!name || !cls || name === cls.name) return
+    setError('')
+    try {
+      await renameClass(classId, name)
+      setNotice('班级名已修改')
+    } catch (e) {
+      setError(errorText(e))
+    }
+  }
+
+  function onNameKey(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') e.currentTarget.blur()
+    if (e.key === 'Escape') {
+      setNameDraft(null)
+      e.currentTarget.blur()
+    }
   }
 
   async function deleteClass() {
-    const current = className ?? cls?.name ?? ''
+    const current = cls?.name ?? ''
     const typed = window.prompt(`删除班级会同时删除所有学生和统计，无法撤销。\n输入班级名称「${current}」确认：`)
     if (typed?.trim() !== current) return
     const { error } = await supabase.from('classes').delete().eq('id', classId)
@@ -114,9 +127,21 @@ export function Roster() {
 
   return (
     <>
-      <header className="page-head">
-        <h1>名单</h1>
-        {students && <span className="count">{students.length} 人</span>}
+      <header className="page-head class-head">
+        <input
+          className="title-input"
+          value={nameDraft ?? cls?.name ?? ''}
+          onChange={(e) => setNameDraft(e.target.value)}
+          onBlur={saveName}
+          onKeyDown={onNameKey}
+          aria-label="班级名称，点击修改"
+          title="点击修改班级名"
+          maxLength={40}
+        />
+        <span className="count">
+          {cls && <>班级码 {cls.join_code}</>}
+          {students && <> · {students.length} 人</>}
+        </span>
       </header>
 
       {error && <p className="error">{error}</p>}
@@ -173,11 +198,7 @@ export function Roster() {
         </button>
       </footer>
       <footer className="page-foot class-foot">
-        {cls && <span className="count">班级码 {cls.join_code}</span>}
-        <button className="btn" onClick={renameClass}>
-          改班级名
-        </button>
-        <button className="btn danger" onClick={deleteClass}>
+        <button className="btn ghost danger" onClick={deleteClass}>
           删除班级
         </button>
       </footer>

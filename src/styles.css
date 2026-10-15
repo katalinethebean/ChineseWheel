@@ -1203,3 +1203,39 @@ textarea {
 .pick-title .count {
   letter-spacing: 0.08em;
 }
+
+/* 名单页标题：班级名，点击直接修改 */
+.class-head {
+  flex-wrap: wrap;
+}
+.title-input {
+  width: auto;
+  min-width: 4em;
+  field-sizing: content;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.1rem 0;
+  border-bottom: 1px dashed transparent;
+  cursor: text;
+}
+.title-input:hover {
+  border-bottom-color: var(--line-strong);
+}
+.title-input:focus {
+  border-bottom: 1px solid var(--ink);
+}
+
+.class-list li {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  border-bottom: 1px solid var(--line);
+}
+.class-list li a {
+  flex: 1;
+  border-bottom: none;
+}
+.class-list .btn-link {
+  font-size: 0.85rem;
+}

@@ -33,9 +33,23 @@ export function useClass(classId: string | undefined) {
       .eq('id', classId)
       .maybeSingle()
       .then(({ data }) => alive && setCls(data))
+    // 别处改了班级名时更新
+    const onRenamed = (e: Event) => {
+      const { id, name } = (e as CustomEvent<{ id: string; name: string }>).detail
+      if (id === classId) setCls((c) => (c ? { ...c, name } : c))
+    }
+    window.addEventListener('class-renamed', onRenamed)
     return () => {
       alive = false
+      window.removeEventListener('class-renamed', onRenamed)
     }
   }, [classId])
   return cls
+}
+
+/** 改班级名，并通知页面上所有显示这个班级名的地方 */
+export async function renameClass(id: string, name: string) {
+  const { error } = await supabase.from('classes').update({ name }).eq('id', id)
+  if (error) throw error
+  window.dispatchEvent(new CustomEvent('class-renamed', { detail: { id, name } }))
 }
