@@ -30,8 +30,8 @@ function Shell({ children, fit, email }: { children: ReactNode; fit: boolean; em
           </Link>
           <span className="class-switch">{classId ? (cls?.name ?? '') : '课堂转盘'}</span>
           {classId && (
-            <Link to="/teacher" className="btn sm leave-class">
-              退出班级
+            <Link to="/teacher" className="leave-class" title="退出班级" aria-label="退出班级">
+              <ExitIcon />
             </Link>
           )}
         </div>
@@ -55,5 +55,26 @@ function Shell({ children, fit, email }: { children: ReactNode; fit: boolean; em
         {classId && cls === null ? <p className="empty">找不到这个班级</p> : children}
       </main>
     </div>
+  )
+}
+
+/** 退出图标：门 + 向外的箭头 */
+function ExitIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <path d="M16 17l5-5-5-5" />
+      <path d="M21 12H9" />
+    </svg>
   )
 }

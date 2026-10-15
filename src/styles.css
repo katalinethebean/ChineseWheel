@@ -38,10 +38,10 @@
   --z-sticky: 20;
   --z-overlay: 30;
 
-  /* 正文：DM Sans + 系统中文字体；标题 / 数字 / 按钮：Impact（和 Fire Chicken 一样） */
+  /* 正文：DM Sans + 系统中文字体；标题和大数字：思源宋体（衬线，轻盈）；公司名单独用 Impact */
   --text: 'DM Sans', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei',
     system-ui, sans-serif;
-  --display: Impact, Haettenschweiler, 'Anton', 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', sans-serif;
+  --display: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;
   font-family: var(--text);
   color: var(--ink);
   background: var(--bg);
@@ -1676,7 +1676,7 @@ textarea:focus {
   color: var(--on-red);
 }
 
-/* ───────── Fire Chicken 风格：Impact 标题、深红顶栏、厚实的按钮 ───────── */
+/* ───────── 轻盈风格：衬线标题、细线按钮、窄顶栏 ───────── */
 
 h1,
 .page-head h1,
@@ -1685,27 +1685,26 @@ h1,
 .login-form h1,
 .home-title {
   font-family: var(--display);
-  font-weight: 800;
-  font-synthesis: none;
-  letter-spacing: 0.02em;
+  font-weight: 500;
+  letter-spacing: 0.04em;
   color: var(--red);
 }
 .home-title {
-  font-size: clamp(2.75rem, 7vw, 4.5rem);
-  letter-spacing: 0.08em;
-  margin-right: -0.08em;
+  font-size: clamp(2.5rem, 6vw, 3.75rem);
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  margin-right: -0.16em;
 }
 
-/* 顶栏：深红，底部一条香槟金细线 */
+/* 顶栏：深红，窄一点，底部一条很细的金线 */
 .topbar {
-  padding: 14px 32px;
-  box-shadow: inset 0 -2px 0 var(--gold);
+  padding: 10px 32px;
+  box-shadow: inset 0 -1px 0 var(--gold);
 }
 .topbar .tabs a {
-  font-family: var(--display);
-  font-synthesis: none;
-  font-size: 1.05rem;
-  letter-spacing: 0.06em;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
 }
 .topbar .tabs a.active::after {
   display: none;
@@ -1713,51 +1712,43 @@ h1,
 .topbar .tabs a.active {
   color: var(--gold);
 }
-.topbar .class-switch {
-  font-weight: 500;
-}
 
-/* 按钮：小圆角、实色、2px 边框、Impact 字体 */
+/* 按钮：胶囊形、1px 细边框 */
 .btn {
-  border-radius: 8px;
-  border-width: 2px;
-  font-family: var(--display);
-  font-weight: 800;
-  font-synthesis: none;
+  border-radius: 999px;
+  border-width: 1px;
+  font-family: var(--text);
+  font-weight: 500;
   letter-spacing: 0.06em;
   background: var(--surface);
   border-color: var(--line-strong);
 }
 .btn.primary {
   background: var(--red);
-  border-color: var(--red-deep);
-}
-.btn.gold {
-  border-color: var(--gold-deep);
-}
-.btn.sm {
-  border-radius: 6px;
-  border-width: 1.5px;
-}
-.btn.xl {
-  border-radius: 10px;
-}
-.topbar .leave-class {
-  border-width: 1.5px;
-  background: transparent;
-  border-color: var(--on-red-line);
-  color: var(--on-red);
-}
-.topbar .leave-class:hover {
-  background: var(--on-red);
-  border-color: var(--on-red);
-  color: var(--red-deep);
+  border-color: var(--red);
 }
 .btn.ghost {
   background: transparent;
 }
 
-/* 大数字用 Impact */
+/* 退出班级：顶栏里的小图标按钮 */
+.topbar .leave-class {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-left: 0.15rem;
+  border-radius: 50%;
+  color: var(--on-red);
+  opacity: 0.8;
+  transition: background 0.15s, opacity 0.15s;
+}
+.topbar .leave-class:hover {
+  opacity: 1;
+  background: var(--on-red-line);
+}
+
+/* 大数字：衬线细体 */
 .chance-num,
 .progress b,
 .join-code,
@@ -1767,23 +1758,20 @@ h1,
 .class-card-code {
   font-family: var(--display);
   font-weight: 400;
-  font-synthesis: none;
-}
-.winner-name {
-  letter-spacing: 0.04em;
 }
 
-/* 卡片：12px 圆角、2px 边框 */
+/* 卡片：细线 */
 .class-grid {
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
 }
 .class-card {
-  min-height: 180px;
-  border-width: 2px;
-  border-radius: 12px;
+  min-height: 170px;
+  border-width: 1px;
+  border-radius: 14px;
 }
 .class-card-name {
-  font-weight: 700;
+  font-family: var(--display);
+  font-weight: 500;
 }
 
 /* ───────── 学生端：笔记本布局 ───────── */
@@ -1852,8 +1840,8 @@ h1,
 .play-panel .result {
   align-items: flex-start;
   padding: 1.5rem 1.75rem;
-  border: 2px solid var(--line);
-  border-radius: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
   background: var(--surface);
 }
 .play-panel .result-name {
@@ -1870,26 +1858,27 @@ h1,
 .play-panel .spin-status {
   margin: 0;
   font-family: var(--display);
-  font-synthesis: none;
   font-size: 1.75rem;
   letter-spacing: 0.06em;
   color: var(--red);
 }
 .waiting p {
   font-family: var(--display);
-  font-synthesis: none;
   font-size: 2rem;
   letter-spacing: 0.08em;
   color: var(--red);
 }
 
-/* 选名字：宽一点的网格 */
+/* 选名字：居中 */
 .pick {
   flex: none;
   width: 100%;
-  padding-top: 0;
+  max-width: 760px;
+  margin: 0 auto 2rem;
+  padding-top: 2vh;
   gap: 2rem;
-  margin-bottom: 2rem;
+  align-items: center;
+  text-align: center;
 }
 .pick.narrow {
   max-width: 420px;
@@ -1902,12 +1891,15 @@ h1,
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 0.75rem;
 }
+.name-grid {
+  width: 100%;
+}
 .name-btn {
-  padding: 1rem 0.75rem;
-  border-radius: 10px;
-  border-width: 2px;
-  font-size: 1.05rem;
-  font-weight: 600;
+  padding: 0.9rem 0.75rem;
+  border-radius: 999px;
+  border-width: 1px;
+  font-size: 1.02rem;
+  font-weight: 500;
 }
 .name-btn:hover:not(:disabled):not(.selected) {
   border-color: var(--red);
@@ -1916,8 +1908,8 @@ h1,
 .pick-confirm {
   position: static;
   transform: none;
-  align-self: flex-start;
-  width: min(100%, 320px);
+  align-self: center;
+  width: min(100%, 300px);
 }
 
 /* 输入班级码：居中 */
@@ -1932,8 +1924,7 @@ h1,
 .code-input {
   font-family: var(--display);
   font-weight: 400;
-  font-synthesis: none;
-  font-size: 3rem;
+  font-size: 2.75rem;
 }
 
 /* 手机等窄屏：单列 */
