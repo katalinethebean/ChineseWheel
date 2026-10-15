@@ -2,18 +2,22 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { errorText, supabase } from '../lib/supabase'
 import { Brand } from '../components/Brand'
+import { EyeIcon } from '../components/Icons'
 
 /** 老师登录 / 注册 */
 export function Login() {
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [show, setShow] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
   async function submit(e: FormEvent) {
     e.preventDefault()
+    if (mode === 'signup' && password !== confirm) return setError('两次输入的密码不一样')
     setBusy(true)
     setError('')
     setNotice('')
@@ -51,16 +55,38 @@ export function Login() {
           onChange={(e) => setEmail(e.target.value)}
           aria-label="邮箱"
         />
-        <input
-          type="password"
-          autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-          placeholder={mode === 'login' ? '密码' : '密码（至少 6 位）'}
-          required
-          minLength={6}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          aria-label="密码"
-        />
+        <div className="pw-field">
+          <input
+            type={show ? 'text' : 'password'}
+            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+            placeholder={mode === 'login' ? '密码' : '密码（至少 6 位）'}
+            required
+            minLength={6}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            aria-label="密码"
+          />
+          <button
+            type="button"
+            className="icon-btn pw-toggle"
+            onClick={() => setShow(!show)}
+            title={show ? '隐藏密码' : '显示密码'}
+            aria-label={show ? '隐藏密码' : '显示密码'}
+          >
+            <EyeIcon off={show} />
+          </button>
+        </div>
+        {mode === 'signup' && (
+          <input
+            type={show ? 'text' : 'password'}
+            autoComplete="new-password"
+            placeholder="再输一次密码"
+            required
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            aria-label="再输一次密码"
+          />
+        )}
         {error && <p className="error">{error}</p>}
         {notice && <p className="notice">{notice}</p>}
         <button className="btn primary lg block" disabled={busy}>

@@ -2068,3 +2068,18 @@ h1,
     animation: none;
   }
 }
+
+.pw-field {
+  position: relative;
+}
+.pw-field input {
+  width: 100%;
+  padding-right: 2.75rem;
+}
+.login-form .pw-toggle {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+}
