@@ -139,13 +139,13 @@ export function Roster() {
       )}
 
       <footer className="page-foot">
-        <button className="btn ghost" onClick={releaseAll}>
+        <button className="btn" onClick={releaseAll}>
           全部解绑
         </button>
-        <button className="btn ghost" onClick={resetCredits}>
+        <button className="btn" onClick={resetCredits}>
           credits 复原
         </button>
-        <button className="btn ghost danger" onClick={resetStats}>
+        <button className="btn danger" onClick={resetStats}>
           统计清零
         </button>
       </footer>

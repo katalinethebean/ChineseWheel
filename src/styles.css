@@ -1101,3 +1101,10 @@ textarea {
     transition-duration: 0.01ms !important;
   }
 }
+
+.btn.danger {
+  color: var(--bad);
+}
+.btn.danger:hover {
+  border-color: var(--bad);
+}
