@@ -1324,3 +1324,22 @@ textarea {
   font-size: 1.1rem;
   color: var(--muted);
 }
+
+/* 首页的彩色小转盘，慢慢转 */
+.home-wheel {
+  width: min(220px, 52vw);
+  margin-bottom: -0.5rem;
+}
+.home-wheel .wheel-disc {
+  animation: idle-spin 24s linear infinite;
+}
+@keyframes idle-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-wheel .wheel-disc {
+    animation: none;
+  }
+}
