@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { EditIcon } from '../components/Icons'
 import { renameClass } from '../lib/hooks'
 import { errorText, rpc, supabase } from '../lib/supabase'
 import type { ClassRow } from '../lib/types'
@@ -103,8 +104,8 @@ export function ClassList() {
                   <span>{c.count} 人</span>
                 </span>
               </Link>
-              <button className="btn-link class-card-rename" onClick={() => rename(c)}>
-                改名
+              <button className="icon-btn class-card-rename" onClick={() => rename(c)} title="改名" aria-label="改名">
+                <EditIcon />
               </button>
             </div>
           ))}

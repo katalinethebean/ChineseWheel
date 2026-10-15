@@ -1,5 +1,6 @@
 import { useEffect, useState, type KeyboardEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { EditIcon } from '../components/Icons'
 import { renameClass, useClass } from '../lib/hooks'
 import { errorText, rpc, supabase } from '../lib/supabase'
 import type { StudentRow } from '../lib/types'
@@ -174,8 +175,8 @@ export function Roster() {
                     解绑
                   </button>
                 )}
-                <button className="btn-link" onClick={() => rename(s)}>
-                  改名
+                <button className="icon-btn" onClick={() => rename(s)} title="改名" aria-label={`给 ${s.name} 改名`}>
+                  <EditIcon />
                 </button>
                 <button className="btn-link danger" onClick={() => remove(s)}>
                   删除

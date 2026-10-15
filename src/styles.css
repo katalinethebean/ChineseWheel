@@ -38,10 +38,9 @@
   --z-sticky: 20;
   --z-overlay: 30;
 
-  /* 正文：DM Sans + 系统中文字体；标题和大数字：思源宋体（衬线，轻盈）；公司名单独用 Impact */
-  --text: 'DM Sans', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei',
-    system-ui, sans-serif;
+  /* 全站统一用思源宋体（衬线，轻盈）；只有公司名用 Impact */
   --display: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;
+  --text: var(--display);
   font-family: var(--text);
   color: var(--ink);
   background: var(--bg);
@@ -1979,4 +1978,30 @@ h1,
   .pick-confirm.show {
     transform: none;
   }
+}
+
+/* 图标按钮（改名等） */
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.icon-btn:hover {
+  background: var(--red-soft);
+  color: var(--red);
+}
+.class-card-rename {
+  top: 0.9rem;
+  right: 0.9rem;
+}
+.roster-actions {
+  align-items: center;
 }

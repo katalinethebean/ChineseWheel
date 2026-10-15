@@ -4,6 +4,7 @@ import { useClass, useSession } from '../lib/hooks'
 import { supabase } from '../lib/supabase'
 import { Login } from '../pages/Login'
 import { Brand } from './Brand'
+import { ExitIcon } from './Icons'
 
 /** 老师端页面外壳：需要登录；顶部导航。fit：页面固定为一屏高，不滚动（上课页用） */
 export function TeacherShell({ children, fit = false }: { children: ReactNode; fit?: boolean }) {
@@ -55,26 +56,5 @@ function Shell({ children, fit, email }: { children: ReactNode; fit: boolean; em
         {classId && cls === null ? <p className="empty">找不到这个班级</p> : children}
       </main>
     </div>
-  )
-}
-
-/** 退出图标：门 + 向外的箭头 */
-function ExitIcon() {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-      <path d="M16 17l5-5-5-5" />
-      <path d="M21 12H9" />
-    </svg>
   )
 }
