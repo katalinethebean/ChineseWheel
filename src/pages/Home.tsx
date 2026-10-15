@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom'
-import { Wheel, type Slice } from '../components/Wheel'
 import { Brand } from '../components/Brand'
+import { Wheel, type Slice } from '../components/Wheel'
 
-// 首页装饰用的小转盘：六种颜色各一块，没有名字
+// 首页装饰用的转盘：六种颜色各一块，没有名字
 const DECOR: Slice[] = Array.from({ length: 6 }, () => ({ weight: 1 }))
 
 export function Home() {
@@ -11,19 +11,27 @@ export function Home() {
       <header className="topbar">
         <Brand />
       </header>
-      <main className="home-main">
-        <div className="home-wheel" aria-hidden>
+      <main className="home-hero">
+        <div className="home-text">
+          <h1 className="home-title">课堂转盘</h1>
+          <nav className="home-entries">
+            <Link to="/teacher" className="home-entry">
+              <span>老师</span>
+              <span className="home-arrow" aria-hidden>
+                →
+              </span>
+            </Link>
+            <Link to="/student" className="home-entry">
+              <span>学生</span>
+              <span className="home-arrow" aria-hidden>
+                →
+              </span>
+            </Link>
+          </nav>
+        </div>
+        <div className="home-art" aria-hidden>
           <Wheel slices={DECOR} rotation={0} spinning={false} />
         </div>
-        <h1 className="home-title">课堂转盘</h1>
-        <nav className="home-choices">
-          <Link to="/teacher" className="btn primary lg">
-            老师
-          </Link>
-          <Link to="/student" className="btn lg">
-            学生
-          </Link>
-        </nav>
       </main>
     </div>
   )

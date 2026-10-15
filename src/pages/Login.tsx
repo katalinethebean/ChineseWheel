@@ -35,9 +35,9 @@ export function Login() {
 
   return (
     <div className="login">
-      <header className="home-head">
+      <header className="topbar">
         <Link to="/">
-          <Brand size={32} />
+          <Brand />
         </Link>
       </header>
       <form className="login-form" onSubmit={submit}>
