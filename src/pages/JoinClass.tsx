@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { errorText, rpc } from '../lib/supabase'
+import { Brand } from '../components/Brand'
 
 /** 学生输入 6 位班级码 */
 export function JoinClass() {
@@ -29,7 +30,7 @@ export function JoinClass() {
   return (
     <div className="student">
       <header className="student-head">
-        <img className="logo" src="/logo.jpg" alt="硅雞科技" width={28} height={28} />
+        <Brand />
       </header>
       <form className="join-class" onSubmit={submit}>
         <h1>班级码</h1>

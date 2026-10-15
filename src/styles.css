@@ -1397,3 +1397,41 @@ textarea {
   margin-bottom: 1.5rem;
   border-bottom: 1px solid var(--line);
 }
+
+/* ───────── 公司标识 ───────── */
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+.brand-mark .logo {
+  flex: none;
+}
+.brand-name {
+  font-family: Impact, Haettenschweiler, 'Anton', 'Arial Narrow Bold', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.brand {
+  text-decoration: none;
+}
+.topbar-left .class-switch {
+  padding-left: 0.9rem;
+  border-left: 1px solid var(--line-strong);
+}
+
+/* 学生端：第二行是名字 + credits */
+.student-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+a:has(> .brand-mark) {
+  text-decoration: none;
+}

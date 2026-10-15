@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { errorText, supabase } from '../lib/supabase'
+import { Brand } from '../components/Brand'
 
 /** 老师登录 / 注册 */
 export function Login() {
@@ -36,7 +37,7 @@ export function Login() {
     <div className="login">
       <header className="home-head">
         <Link to="/">
-          <img className="logo" src="/logo.jpg" alt="硅雞科技" width={32} height={32} />
+          <Brand size={32} />
         </Link>
       </header>
       <form className="login-form" onSubmit={submit}>

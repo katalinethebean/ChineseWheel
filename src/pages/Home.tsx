@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Wheel, type Slice } from '../components/Wheel'
+import { Brand } from '../components/Brand'
 
 // 首页装饰用的小转盘：六种颜色各一块，没有名字
 const DECOR: Slice[] = Array.from({ length: 6 }, () => ({ weight: 1 }))
@@ -8,7 +9,7 @@ export function Home() {
   return (
     <div className="home">
       <header className="home-head">
-        <img className="logo" src="/logo.jpg" alt="硅雞科技" width={32} height={32} />
+        <Brand size={32} />
       </header>
       <main className="home-main">
         <div className="home-wheel" aria-hidden>

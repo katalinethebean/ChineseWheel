@@ -6,6 +6,7 @@ import { errorText, rpc, supabase } from '../lib/supabase'
 import type { StudentState } from '../lib/types'
 import { MIN_WEIGHT, NORMAL_WEIGHT, SLIDER_MAX, pct, posOf, weightAt } from '../lib/slider'
 import { layoutArcs, targetRotationInArc } from '../lib/wheel'
+import { Brand } from '../components/Brand'
 
 type RosterEntry = { id: string; name: string; claimed: boolean }
 
@@ -97,7 +98,7 @@ function PickName({ code, onClaimed }: { code: string; onClaimed: (token: string
     return (
       <div className="student">
         <header className="student-head">
-          <img className="logo" src="/logo.jpg" alt="硅雞科技" width={28} height={28} />
+          <Brand />
         </header>
         <div className="pick">
           <h1>没有这个班级</h1>
@@ -111,7 +112,7 @@ function PickName({ code, onClaimed }: { code: string; onClaimed: (token: string
   return (
     <div className="student">
       <header className="student-head">
-        <img className="logo" src="/logo.jpg" alt="硅雞科技" width={28} height={28} />
+        <Brand />
       </header>
       <div className="pick">
         <div className="pick-title">
@@ -271,15 +272,15 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
   return (
     <div className="student">
       <header className="student-head">
-        <span className="me">
-          <img className="logo" src="/logo.jpg" alt="硅雞科技" width={28} height={28} />
-          {state.student_name}
-        </span>
+        <Brand />
+      </header>
+      <div className="student-bar">
+        <span className="me">{state.student_name}</span>
         <CreditsBadge
           credits={state.credits}
           pending={q?.status === 'open' && q.is_candidate ? creditChange(myWeight - NORMAL_WEIGHT) : null}
         />
-      </header>
+      </div>
 
       {!state.lesson_active || !q ? (
         <div className="waiting">
