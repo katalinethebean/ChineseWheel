@@ -211,7 +211,7 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
   if (q?.other_weights) lastOthers.current = { id: q.id, weights: q.other_weights }
   const othersCount = q ? q.candidate_count - (q.is_candidate ? 1 : 0) : 0
   const othersTotal = q ? q.total_weight - (q.is_candidate ? q.weight : 0) : 0
-  const known = lastOthers.current?.id === q?.id ? lastOthers.current!.weights : null
+  const known = q && lastOthers.current?.id === q.id ? lastOthers.current.weights : null
   const otherWeights =
     known && known.length === othersCount ? known : Array.from({ length: othersCount }, () => othersTotal / othersCount)
   const slices: Slice[] = []
