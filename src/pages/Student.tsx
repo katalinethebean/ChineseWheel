@@ -156,6 +156,8 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
   const latestAdjust = useRef(0)
   const animatedFor = useRef<string | null>(null)
   const sendTimer = useRef<number | undefined>(undefined)
+  const lastOthers = useRef<{ id: string; weights: number[] } | null>(null)
+  const pokeRef = useRef<() => void>(() => {})
   const onInvalidRef = useRef(onInvalid)
   onInvalidRef.current = onInvalid
 
@@ -173,7 +175,7 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
   }, [token])
 
   // 出题期间刷新快一点，这样别人调整后自己的扇区大小能及时更新
-  usePolling(load, q?.status === 'open' ? 2000 : 4000)
+  usePolling(load, q?.status === 'open' ? 1500 : 4000)
 
   // 题目变化时，用服务器的权重重置本地显示
   useEffect(() => {
@@ -194,24 +196,30 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
         { event: '*', schema: 'public', table: 'questions', filter: `lesson_id=eq.${lessonId}` },
         () => load(),
       )
+      // 有人调了权重：广播一下，其他学生立刻刷新
+      .on('broadcast', { event: 'weight' }, () => load())
       .subscribe()
+    pokeRef.current = () => channel.send({ type: 'broadcast', event: 'weight', payload: {} })
     return () => {
+      pokeRef.current = () => {}
       supabase.removeChannel(channel)
     }
   }, [load, lessonId])
 
-  // 转盘的扇区：自己的按真实占比，其他人灰色、没有名字、平均分
+  // 转盘的扇区：每个人按真实占比；其他人灰色、没有名字。转盘后沿用出题时最后看到的大小
   const myWeight = weight ?? q?.weight ?? 10
+  if (q?.other_weights) lastOthers.current = { id: q.id, weights: q.other_weights }
   const othersCount = q ? q.candidate_count - (q.is_candidate ? 1 : 0) : 0
   const othersTotal = q ? q.total_weight - (q.is_candidate ? q.weight : 0) : 0
+  const known = lastOthers.current?.id === q?.id ? lastOthers.current!.weights : null
+  const otherWeights =
+    known && known.length === othersCount ? known : Array.from({ length: othersCount }, () => othersTotal / othersCount)
   const slices: Slice[] = []
   if (q && state?.valid) {
     if (q.is_candidate) {
       slices.push({ label: state.student_name, weight: myWeight, color: ME_COLOR, textColor: '#fff' })
     }
-    for (let i = 0; i < othersCount; i++) {
-      slices.push({ weight: othersTotal / othersCount, color: OTHER_COLORS[i % 2] })
-    }
+    otherWeights.forEach((w, i) => slices.push({ weight: w, color: OTHER_COLORS[i % 2] }))
   }
   const chance = q?.is_candidate ? myWeight / (othersTotal + myWeight) : 0
 
@@ -257,11 +265,12 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
       try {
         const saved = await rpc<number>('set_weight', { p_token: token, p_question_id: questionId, p_weight: w })
         if (ticket === latestAdjust.current) setWeight(saved)
+        pokeRef.current()
       } catch (e) {
         setError(errorText(e))
         load()
       }
-    }, 200)
+    }, 120)
   }
 
   if (!state?.valid) return <StudentShell>{error && <p className="error">{error}</p>}</StudentShell>

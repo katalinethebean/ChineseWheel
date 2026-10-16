@@ -52,6 +52,8 @@ export type StudentState =
         is_candidate: boolean
         total_weight: number
         candidate_count: number
+        /** 出题中其他候选人的权重（无名字）；转盘后为 null */
+        other_weights: number[] | null
         winner_name: string | null
         is_me: boolean | null
         seconds_since_spin: number | null
