@@ -515,6 +515,8 @@ describe('老师登录与权限', () => {
     await expect(q('teacher2', 'select start_lesson($1, false)', [classId])).rejects.toThrow(/没有权限/)
     await expect(q('teacher2', 'select start_question($1)', [lesson])).rejects.toThrow(/没有权限/)
     await expect(q('teacher2', 'select spin($1)', [qid])).rejects.toThrow(/没有权限/)
+    await expect(q(T, 'select start_question(gen_random_uuid())')).rejects.toThrow(/找不到这节课/)
+    expect((await state(t1)).lesson_id).toBe(lesson)
     await expect(q('teacher2', 'select teacher_lesson_state($1)', [lesson])).rejects.toThrow(/没有权限/)
     await expect(q('teacher2', 'select settle_lesson($1)', [lesson])).rejects.toThrow(/没有权限/)
     await expect(q('teacher2', 'select release_student($1)', [ids['甲']])).rejects.toThrow(/没有权限/)

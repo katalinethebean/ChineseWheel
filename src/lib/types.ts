@@ -43,6 +43,7 @@ export type StudentState =
       class_name: string
       credits: number
       lesson_active: boolean
+      lesson_id: string | null
       question: null | {
         id: string
         status: 'open' | 'spun'

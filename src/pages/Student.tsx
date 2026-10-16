@@ -180,16 +180,25 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
     setWeight(q ? q.weight : null)
   }, [q?.id, q?.status])
 
-  // 实时推送：老师开题 / 转盘时立刻刷新
+  // 题目换了或结束了：丢掉还没发出的权重
+  useEffect(() => () => window.clearTimeout(sendTimer.current), [q?.id, q?.status])
+
+  // 实时推送：老师开题 / 转盘时立刻刷新（只听本节课的题目）
+  const lessonId = state?.valid ? state.lesson_id : null
   useEffect(() => {
+    if (!lessonId) return
     const channel = supabase
-      .channel('questions')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'questions' }, () => load())
+      .channel(`questions-${lessonId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'questions', filter: `lesson_id=eq.${lessonId}` },
+        () => load(),
+      )
       .subscribe()
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [load])
+  }, [load, lessonId])
 
   // 转盘的扇区：自己的按真实占比，其他人灰色、没有名字、平均分
   const myWeight = weight ?? q?.weight ?? 10

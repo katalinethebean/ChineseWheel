@@ -164,7 +164,7 @@ export function Lesson() {
       } else if (e.key === ' ' && questionOpen && !busy) {
         e.preventDefault()
         spin()
-      } else if (e.key === 'Enter' && !questionOpen && lesson && !busy && phase !== 'spinning') {
+      } else if (e.key === 'Enter' && !(e.target instanceof HTMLButtonElement) && !questionOpen && lesson && !busy && phase !== 'spinning') {
         e.preventDefault()
         newQuestion()
       }
