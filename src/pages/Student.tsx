@@ -152,6 +152,7 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
   const [spinMs, setSpinMs] = useState(SPIN_MS)
   const [landedIndex, setLandedIndex] = useState<number | null>(null)
   const [revealAt, setRevealAt] = useState(0)
+  const [showRules, setShowRules] = useState(false)
   const [, forceTick] = useState(0)
   const latestAdjust = useRef(0)
   const animatedFor = useRef<string | null>(null)
@@ -284,6 +285,27 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
       center={!state.lesson_active || !q}
       right={
         <>
+          <div className="student-rules-wrap">
+            <button
+              className="student-info"
+              type="button"
+              aria-label="查看 credits 规则"
+              aria-expanded={showRules}
+              onClick={() => setShowRules((open) => !open)}
+            >
+              i
+            </button>
+            {showRules && (
+              <div className="student-rules" role="dialog" aria-label="Credits 规则">
+                <button className="student-rules-close" type="button" aria-label="关闭规则" onClick={() => setShowRules(false)}>×</button>
+                <strong>Credits 规则</strong>
+                <p>权重低于平时（10）：每减少 1，消耗 1 credit。</p>
+                <p>被抽中：每增加 5 权重，获得 1 credit。</p>
+                <p>没被抽中：增加 10 权重，获得 1 credit；此后每再增加 20，获得 1 credit。</p>
+                <p className="muted">转盘结束后结算。</p>
+              </div>
+            )}
+          </div>
           <span className="me">{state.student_name}</span>
           <CreditsBadge
             credits={state.credits}
@@ -392,16 +414,16 @@ function CreditsBadge({ credits, pending }: { credits: number; pending: CreditCh
   )
 }
 
-/** 这题结束后 credits 的变化：加权每 5 赚 1 个（向下取整），减权每 1 花 1 个 */
+/** 这题结束后 credits 的变化：加权被抽中每 5 赚 1 个；未抽中 +10 给 1 个，此后每 +20 给 1 个；减权每 1 花 1 个 */
 type CreditChange = { min: number; max: number }
 
 /**
  * 这题结束后 credits 的变化（和数据库 spin() 的规则一致）：
- * 减权每 1 花 1 个；加权被抽中每 5 赚 1 个，没抽中给安慰奖（+5~49 给 1 个，+50 以上给 2 个）
+ * 减权每 1 花 1 个；加权被抽中每 5 赚 1 个，没抽中 +10 给 1 个，此后每 +20 给 1 个
  */
 function creditChange(delta: number): CreditChange {
   if (delta <= 0) return { min: delta, max: delta }
-  const consolation = delta >= 50 ? 2 : delta >= EARN_STEP ? 1 : 0
+  const consolation = delta >= 10 ? 1 + Math.floor((delta - 10) / 20) : 0
   return { min: consolation, max: Math.floor(delta / EARN_STEP) }
 }
 

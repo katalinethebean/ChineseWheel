@@ -1406,6 +1406,53 @@ textarea {
   justify-content: space-between;
   align-items: center;
 }
+.student-rules-wrap {
+  position: relative;
+  margin-right: -1rem;
+}
+.student-info {
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  border: 1px solid var(--on-red-line);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--on-red);
+  font: inherit;
+  font-size: 0.9rem;
+  font-style: italic;
+  cursor: pointer;
+}
+.student-info:hover,
+.student-info[aria-expanded='true'] { background: var(--on-red); color: var(--red-deep); }
+.student-rules {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.7rem);
+  right: -1rem;
+  width: min(19rem, calc(100vw - 2rem));
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--paper, #fff);
+  color: var(--ink);
+  box-shadow: 0 8px 28px #24150e24;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.student-rules strong { display: block; margin-bottom: 0.55rem; }
+.student-rules p { margin: 0.4rem 0; }
+.student-rules .muted { color: var(--muted); font-size: 0.78rem; }
+.student-rules-close {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.55rem;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
 a:has(> .brand-mark) {
   text-decoration: none;
 }
