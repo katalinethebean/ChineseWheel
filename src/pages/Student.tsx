@@ -299,7 +299,7 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
               <div className="student-rules" role="dialog" aria-label="Credits 规则">
                 <button className="student-rules-close" type="button" aria-label="关闭规则" onClick={() => setShowRules(false)}>×</button>
                 <strong>Credits 规则</strong>
-                <p>权重低于平时（10）：每减少 1，消耗 1 credit。</p>
+                <p>权重低于平时（10）：每减少 1，消耗 1 credit；如果被抽中，这些 credits 会全部退还。</p>
                 <p>被抽中：每增加 5 权重，获得 1 credit。</p>
                 <p>没被抽中：增加 10 权重，获得 1 credit；此后每再增加 20，获得 1 credit。</p>
                 <p className="muted">转盘结束后结算。</p>
@@ -402,12 +402,14 @@ function CreditsBadge({ credits, pending }: { credits: number; pending: CreditCh
     <div className="credits" title="减权花 credits，加权赚 credits，转盘后结算">
       <span className="credits-num">{credits}</span>
       <span className="credits-label">credits</span>
-      {pending && pending.max !== 0 && (
+      {pending && (pending.min !== 0 || pending.max !== 0) && (
         <span
           className={pending.max > 0 ? 'credits-pending up' : 'credits-pending down'}
-          title={pending.max > 0 ? '没抽中 / 抽中' : undefined}
+          title={pending.min !== pending.max ? '没抽中 / 抽中' : undefined}
         >
-          {pending.max < 0 ? pending.max : pending.min === pending.max ? `+${pending.max}` : `+${pending.min}~${pending.max}`}
+          {pending.min === pending.max
+            ? pending.max > 0 ? `+${pending.max}` : pending.max
+            : `${pending.min > 0 ? '+' : ''}${pending.min}~${pending.max > 0 ? '+' : ''}${pending.max}`}
         </span>
       )}
     </div>
@@ -422,7 +424,8 @@ type CreditChange = { min: number; max: number }
  * 减权每 1 花 1 个；加权被抽中每 5 赚 1 个，没抽中 +10 给 1 个，此后每 +20 给 1 个
  */
 function creditChange(delta: number): CreditChange {
-  if (delta <= 0) return { min: delta, max: delta }
+  if (delta < 0) return { min: delta, max: 0 }
+  if (delta === 0) return { min: 0, max: 0 }
   const consolation = delta >= 10 ? 1 + Math.floor((delta - 10) / 20) : 0
   return { min: consolation, max: Math.floor(delta / EARN_STEP) }
 }
