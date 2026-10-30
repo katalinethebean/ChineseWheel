@@ -299,10 +299,12 @@ function StudentView({ token, onInvalid }: { token: string; onInvalid: () => voi
               <div className="student-rules" role="dialog" aria-label="Credits 规则">
                 <button className="student-rules-close" type="button" aria-label="关闭规则" onClick={() => setShowRules(false)}>×</button>
                 <strong>Credits 规则</strong>
-                <p>权重低于平时（10）：每减少 1，消耗 1 credit；如果被抽中，这些 credits 会全部退还。</p>
-                <p>被抽中：每增加 5 权重，获得 1 credit。</p>
-                <p>没被抽中：增加 10 权重，获得 1 credit；此后每再增加 20，获得 1 credit。</p>
-                <p className="muted">转盘结束后结算。</p>
+                <p><b>加权</b></p>
+                <p>被抽中：每 +5 码 +1 credit</p>
+                <p>没被抽中：前 +10 码 +1 credit；后每 +20 码 +1 credit</p>
+                <p><b>减权</b></p>
+                <p>被抽中：返还所有 credit</p>
+                <p>没被抽中：每 -1 码 -1 credit</p>
               </div>
             )}
           </div>
